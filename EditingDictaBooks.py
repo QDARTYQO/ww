@@ -2671,17 +2671,69 @@ class MainMenu(QWidget):
         spacer = QSpacerItem(0, 20, QSizePolicy.Minimum, QSizePolicy.Fixed)  # 20 פיקסלים מרווח
         text_layout.addItem(spacer)
         # הוספת פאנל הטקסט
-        self.text_display = QTextEdit()
+        self.text_display = QtWidgets.QTextBrowser()
         self.text_display.setReadOnly(True)
+        
+        # הגדרת כיוון טקסט מימין לשמאל
+        self.text_display.setLayoutDirection(Qt.RightToLeft)
+        
+        # הגדרת סגנון עיצוב
         self.text_display.setStyleSheet("""
-            QTextEdit {
+            QTextBrowser {
                 background-color: transparent;
                 border: 2px solid black;
                 border-radius: 15px;
-                padding: 5px;
+                padding: 20px 40px;  /* הגדלת שוליים פנימיים */
+                font-family: Arial;
+                font-size: 14px;
+                text-align: justify;  /* יישור לשני הצדדים */
+                line-height: 1.5;     /* מרווח בין שורות */
             }
-            QTextEdit:focus {
-                border: 1px solid black;
+            
+            /* עיצוב כותרות */
+            h1 { 
+                font-size: 24px; 
+                font-weight: bold; 
+                margin: 10px 0;
+                text-align: right;  /* יישור כותרות לימין */
+            }
+            h2 { 
+                font-size: 20px; 
+                font-weight: bold; 
+                margin: 8px 0;
+                text-align: right;
+            }
+            h3 { 
+                font-size: 18px; 
+                font-weight: bold; 
+                margin: 6px 0;
+                text-align: right;
+            }
+            h4 { 
+                font-size: 16px; 
+                font-weight: bold; 
+                margin: 4px 0;
+                text-align: right;
+            }
+            h5 { 
+                font-size: 14px; 
+                font-weight: bold; 
+                margin: 2px 0;
+                text-align: right;
+            }
+            h6 { 
+                font-size: 12px; 
+                font-weight: bold; 
+                margin: 2px 0;
+                text-align: right;
+            }
+            
+            /* עיצוב פסקאות */
+            p {
+                text-align: justify;
+                margin: 0;
+                padding: 5px 0;
+                text-indent: 20px;  /* הזחה בתחילת פסקה */
             }
         """)
         
@@ -2843,7 +2895,8 @@ class MainMenu(QWidget):
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 self.original_content = file.read()
-                self.text_display.setPlainText(self.original_content)
+                # הגדרת התוכן כ-HTML
+                self.text_display.setHtml(self.original_content)
                 return True
         except UnicodeDecodeError:
             QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
@@ -2851,6 +2904,11 @@ class MainMenu(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת הקובץ: {str(e)}")
             return False
+
+    def update_content_from_child(self):
+        """עדכון התצוגה לאחר שינויים בחלונות המשנה"""
+        if self.current_file_path:
+            self.load_file_content(self.current_file_path)
 
     def select_file(self):
         """פונקציה לבחירת קובץ, טעינתו והצגתו"""
@@ -2860,7 +2918,7 @@ class MainMenu(QWidget):
             "קבצי טקסט (*.txt);;כל הקבצים (*.*)", 
             options=options
         )
-        if file_path:
+        if file_path: 
             if not file_path.lower().endswith('.txt'):
                 QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
                 return
@@ -2872,12 +2930,11 @@ class MainMenu(QWidget):
     def refresh_display(self):
         """רענון תצוגת הטקסט לאחר שינויים"""
         if self.current_file_path:
-            self.load_file_content(self.current_file_path)
+            try:
+                self.load_file_content(self.current_file_path)
+            except Exception as e:
+                QMessageBox.critical(self, "שגיאה", f"שגיאה ברענון התצוגה: {str(e)}")
 
-    def update_content_from_child(self):
-        """עדכון התצוגה לאחר שינויים בחלונות המשנה"""
-        if self.current_file_path:
-            self.load_file_content(self.current_file_path)
 
 
 
@@ -2887,7 +2944,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.create_headers_window = CreateHeadersOtZria()
-        self.create_headers_window.file_entry.setText(self.current_file_path)
+        self.create_headers_window.set_file_path(self.current_file_path)
         self.create_headers_window.changes_made.connect(self.update_content_from_child)
         self.create_headers_window.show()
 
@@ -2897,7 +2954,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.create_single_letter_headers_window = CreateSingleLetterHeaders()
-        self.create_single_letter_headers_window.file_entry.setText(self.current_file_path)
+        self.create_single_letter_headers_window.set_file_path(self.current_file_path)
         self.create_single_letter_headers_window.changes_made.connect(self.update_content_from_child)
         self.create_single_letter_headers_window.show()
 
@@ -2907,7 +2964,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.add_page_number_window = AddPageNumberToHeading()
-        self.add_page_number_window.file_entry.setText(self.current_file_path)
+        self.add_page_number_window.set_file_path(self.current_file_path)
         self.add_page_number_window.changes_made.connect(self.update_content_from_child)
         self.add_page_number_window.show()
 
@@ -2917,7 +2974,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.change_heading_level_window = ChangeHeadingLevel()
-        self.change_heading_level_window.file_entry.setText(self.current_file_path)
+        self.change_heading_level_window.set_file_path(self.current_file_path)
         self.change_heading_level_window.changes_made.connect(self.update_content_from_child)
         self.change_heading_level_window.show()
 
@@ -2927,7 +2984,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.emphasize_and_punctuate_window = EmphasizeAndPunctuate()
-        self.emphasize_and_punctuate_window.file_path_entry.setText(self.current_file_path)
+        self.emphasize_and_punctuate_window.set_file_path(self.current_file_path)
         self.emphasize_and_punctuate_window.changes_made.connect(self.update_content_from_child)
         self.emphasize_and_punctuate_window.show()
 
@@ -2937,7 +2994,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.create_page_b_headers_window = CreatePageBHeaders()
-        self.create_page_b_headers_window.file_entry.setText(self.current_file_path)
+        self.create_page_b_headers_window.set_file_path(self.current_file_path)
         self.create_page_b_headers_window.changes_made.connect(self.update_content_from_child)
         self.create_page_b_headers_window.show()
 
@@ -2947,7 +3004,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.replace_page_b_headers_window = ReplacePageBHeaders()
-        self.replace_page_b_headers_window.file_entry.setText(self.current_file_path)
+        self.replace_page_b_headers_window.set_file_path(self.current_file_path)
         self.replace_page_b_headers_window.changes_made.connect(self.update_content_from_child)
         self.replace_page_b_headers_window.show()
 
@@ -2957,7 +3014,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.check_heading_errors_original_window = CheckHeadingErrorsOriginal()
-        self.check_heading_errors_original_window.file_path_edit.setText(self.current_file_path)
+        self.check_heading_errors_original_window.set_file_path(self.current_file_path)
         self.check_heading_errors_original_window.process_file(self.current_file_path)
         self.check_heading_errors_original_window.show()
 
@@ -2967,7 +3024,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.check_heading_errors_custom_window = CheckHeadingErrorsCustom()
-        self.check_heading_errors_custom_window.file_path_edit.setText(self.current_file_path)
+        self.check_heading_errors_custom_window.set_file_path(self.current_file_path)
         self.check_heading_errors_custom_window.process_file(self.current_file_path)
         self.check_heading_errors_custom_window.show()
 
@@ -2982,7 +3039,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.Text_Cleaner_App_window = TextCleanerApp()
-        self.Text_Cleaner_App_window.filePath.setText(self.current_file_path)
+        self.Text_Cleaner_App_window.set_file_path(self.current_file_path)
         self.Text_Cleaner_App_window.changes_made.connect(self.update_content_from_child)
         self.Text_Cleaner_App_window.show()
 
@@ -2992,7 +3049,7 @@ class MainMenu(QWidget):
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
         self.replace_colons_and_spaces_window = ReplaceColonsAndSpaces()
-        self.replace_colons_and_spaces_window.file_path_entry.setText(self.current_file_path)
+        self.replace_colons_and_spaces_window.set_file_path(self.current_file_path)
         self.replace_colons_and_spaces_window.changes_made.connect(self.update_content_from_child)
         self.replace_colons_and_spaces_window.show()    
 
