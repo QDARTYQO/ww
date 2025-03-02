@@ -24,11 +24,35 @@ from packaging import version
 import base64
 import urllib.request
 
+GLOBAL_STYLE = """
+    QWidget {
+        font-family: "Segoe UI", Arial;
+        font-size: 14px;
+    }
+    QPushButton {
+        font-size: 20px;
+    }
+    QLabel {
+        font-size: 20px;
+    }
+    QComboBox {
+        font-size: 20px;
+    }
+    QLineEdit {
+        font-size: 20px;
+    }
+    QCheckBox {
+        font-size: 20px;
+    }
+"""
+
 # מזהה ייחודי לאפליקציה
 myappid = 'MIT.LEARN_PYQT.dictatootzaria'
 
 # מחרוזת Base64 של האייקון (החלף את זה עם המחרוזת שתקבל אחרי המרת הקובץ שלך ל־Base64)
 icon_base64 = "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"
+#מחלקה לטעינת קבצים
+
 class FileLoader(QThread):
     """מחלקה לטעינת קבצים ברקע"""
     finished = pyqtSignal(dict)  # שולח מילון עם התוצאות
@@ -36,64 +60,25 @@ class FileLoader(QThread):
     def __init__(self, file_path):
         super().__init__()
         self.file_path = file_path
-        
-        # הגדרת logging
-        logging.basicConfig(
-            filename='file_loader.log',
-            level=logging.ERROR,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
 
     def run(self):
         result = {
             'success': False,
             'content': None,
-            'error': None,
-            'file_size': 0
+            'error': None
         }
         
         try:
-            # בדיקת קיום הקובץ
-            if not os.path.exists(self.file_path):
-                result['error'] = "הקובץ לא קיים"
-                self.finished.emit(result)
-                return
-                
-            # בדיקת גודל הקובץ
-            file_size = os.path.getsize(self.file_path)
-            if file_size > 10_000_000:  # 10MB
-                result['error'] = "הקובץ גדול מדי. הגודל המקסימלי המותר הוא 10MB"
-                self.finished.emit(result)
-                return
-                
-            # ניסיון קריאת הקובץ
             with open(self.file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
-                
-                # בדיקת תוכן הקובץ
-                if not content.strip():
-                    result['error'] = "הקובץ ריק"
-                    self.finished.emit(result)
-                    return
-                    
                 result['success'] = True
                 result['content'] = content
-                result['file_size'] = file_size
-                
         except UnicodeDecodeError:
-            result['error'] = "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8"
-            logging.error(f"Unicode Error while loading file: {self.file_path}\n{traceback.format_exc()}")
-            
-        except MemoryError:
-            result['error'] = "אין מספיק זיכרון לטעינת הקובץ"
-            logging.error(f"Memory Error while loading file: {self.file_path}\n{traceback.format_exc()}")
-            
+            result['error'] = "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8."
         except Exception as e:
-            result['error'] = f"שגיאה בלתי צפויה: {str(e)}"
-            logging.error(f"Unexpected error while loading file: {self.file_path}\n{traceback.format_exc()}")
-            
+            result['error'] = f"שגיאה בפתיחת הקובץ: {str(e)}"
         finally:
-            self.finished.emit(result)  
+            self.finished.emit(result)
 # ==========================================
 # Script 1: יצירת כותרות לאוצריא
 # ==========================================
@@ -103,7 +88,8 @@ class CreateHeadersOtZria(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.file_path = ""  
+        self.setStyleSheet(GLOBAL_STYLE)  # הוספת הסגנון הגלובלי
+        self.file_path = ""
         self.setWindowTitle("יצירת כותרות לאוצריא")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.setGeometry(100, 100, 600, 300)
@@ -116,10 +102,8 @@ class CreateHeadersOtZria(QWidget):
         search_layout = QHBoxLayout()
         search_label = QLabel("מילה לחפש:")
         search_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        search_label.setStyleSheet("font-size: 20px;")
         self.level_var = QComboBox()
         self.level_var.setLayoutDirection(Qt.RightToLeft)
-        self.level_var.setStyleSheet("font-size: 20px;")
         self.level_var.setFixedSize(150, 40)
         self.level_var.setLayoutDirection(Qt.RightToLeft)
         search_choices = ["דף", "עמוד", "פרק", "פסוק", "שאלה", "סימן", "סעיף", "הלכה", "הלכות", "סק"]
@@ -138,7 +122,6 @@ class CreateHeadersOtZria(QWidget):
             "אין להקליד רווח אחרי המילה, וכן אין להקליד את התו גרש (') או גרשיים (\"), וכן אין להקליד יותר ממילה אחת\n"
         )
         explanation.setAlignment(Qt.AlignCenter)
-        explanation.setStyleSheet("font-size: 21px;")
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
@@ -157,9 +140,7 @@ class CreateHeadersOtZria(QWidget):
         heading_layout = QHBoxLayout()
         self.heading_label = QLabel("רמת כותרת:")
         self.heading_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.heading_label.setStyleSheet("font-size: 20px;")
         self.heading_level_var = QComboBox()
-        self.heading_level_var.setStyleSheet("font-size: 20px;")
         self.heading_level_var.addItems([str(i) for i in range(2, 7)])
         self.heading_level_var.setCurrentText("2")
         self.heading_level_var.setFixedWidth(50)
@@ -171,7 +152,6 @@ class CreateHeadersOtZria(QWidget):
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
         run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
         layout.addWidget(run_button)
 
         self.setLayout(layout)
@@ -182,6 +162,7 @@ class CreateHeadersOtZria(QWidget):
 
     def show_custom_message(self, title, message_parts, window_size=("560x330")):
         msg = QMessageBox(self)
+        msg.setStyleSheet(GLOBAL_STYLE)  # הוספת הסגנון הגלובלי
         msg.setWindowTitle(title)
         msg.setIcon(QMessageBox.Information)
 
@@ -221,9 +202,11 @@ class CreateHeadersOtZria(QWidget):
         found = False
         count_headings = 0
         finde_cleaned = self.strip_html_tags(finde).strip()
+        
         with open(book_file, "r", encoding="utf-8") as file_input:
             content = file_input.read().splitlines()
             all_lines = content[0:2]
+            
             for line in content[2:]:
                 words = line.split()
                 try:
@@ -239,6 +222,7 @@ class CreateHeadersOtZria(QWidget):
                         all_lines.append(line)
                 except IndexError:
                     all_lines.append(line)
+                    
         join_lines = "\n".join(all_lines)
         with open(book_file, "w", encoding="utf-8") as autpoot:
             autpoot.write(join_lines)
@@ -277,27 +261,18 @@ class CreateHeadersOtZria(QWidget):
 
             found, count_headings = self.main(self.file_path, finde, end + 1, level_num)
             if found and count_headings > 0:
-                # הפעלה אוטומטית של סקריפט 3 לפני הצגת ההודעה
-                self.run_page_number_script()
-                
                 detailed_message = [
                     ("<div style='text-align: center;'>התוכנה רצה בהצלחה!</div>", 12),
-                    (f"<div style='text-align: center;'>נוצרו {count_headings} כותרות ובוצע עדכון למספרי העמודים</div>", 15, "bold"),
+                    (f"<div style='text-align: center;'>נוצרו {count_headings} כותרות</div>", 15, "bold"),
                     ("<div style='text-align: center;'>כעת פתח את הספר בתוכנת 'אוצריא', והשינויים ישתקפו ב'ניווט' שבתפריט הצידי.</div>", 11)
                 ]
                 self.show_custom_message("!מזל טוב", detailed_message, "560x310")
-                self.changes_made.emit()
+                self.changes_made.emit()  # שליחת סיגנל שבוצעו שינויים
             else:
                 self.show_custom_message("!שים לב", [("לא נמצא מה להחליף", 12)], "250x80")
         except Exception as e:
             self.show_custom_message("שגיאה", [("אירעה שגיאה: " + str(e), 12)], "250x150")
 
-    def run_page_number_script(self):
-        """הפעלת סקריפט מספר 3 באופן אוטומטי"""
-        page_number_processor = AddPageNumberToHeading()
-        page_number_processor.set_file_path(self.file_path)
-        # הפעלת הפונקציה הראשית של סקריפט 3 ישירות
-        page_number_processor.process_file(self.file_path, "נקודה ונקודותיים")  # או איזה פרמטר שתרצה כברירת מחדל
     def load_icon_from_base64(self, base64_string):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
@@ -2538,6 +2513,9 @@ class MainMenu(QWidget):
         self.current_file_path = ""
         self.current_version = "3.2"  # הגרסה הנוכחית של התוכנה
         
+        self.file_loader = None
+        self.progress_dialog = None
+        
         # הגדרת החלון
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
         self.setLayoutDirection(Qt.RightToLeft)
@@ -2992,106 +2970,78 @@ class MainMenu(QWidget):
         if self.current_file_path:
             self.load_file_content(self.current_file_path)
     def load_file_content(self, file_path):
-        """טעינת תוכן הקובץ"""
+        """טעינת תוכן הקובץ וחזרה האם הטעינה הצליחה"""
         try:
-            # יצירת דיאלוג התקדמות משופר
-            self.progress_dialog = QProgressDialog(self)
-            self.progress_dialog.setWindowTitle("טוען קובץ")
-            self.progress_dialog.setLabelText(f"טוען את הקובץ:\n{os.path.basename(file_path)}")
-            self.progress_dialog.setMinimum(0)
-            self.progress_dialog.setMaximum(0)
-            self.progress_dialog.setCancelButton(None)
-            self.progress_dialog.setWindowModality(Qt.WindowModal)
-            self.progress_dialog.setMinimumWidth(300)
-            self.progress_dialog.setStyleSheet("""
-                QProgressDialog {
-                    background-color: white;
-                    border-radius: 10px;
-                    border: 1px solid #cccccc;
-                }
-                QProgressDialog QLabel {
-                    color: #333333;
-                    font-size: 14px;
-                    padding: 10px;
-                    qproperty-alignment: AlignCenter;
-                }
-                QProgressBar {
-                    border: 1px solid #cccccc;
-                    border-radius: 5px;
-                    text-align: center;
-                    height: 20px;
-                }
-            """)
-
-            # יצירת והפעלת טעינת הקובץ
-            self.file_loader = FileLoader(file_path)
-            self.file_loader.finished.connect(self.on_file_loaded)
-            self.file_loader.start()
+            # יצירת דיאלוג המתנה מותאם
+            please_wait = QDialog(self)
+            please_wait.setWindowTitle("טוען קובץ")
+            please_wait.setWindowModality(Qt.WindowModal)
+            please_wait.setFixedSize(300, 100)
             
-            # הצגת דיאלוג ההתקדמות
-            self.progress_dialog.exec_()
+            # הוספת תווית לדיאלוג
+            layout = QVBoxLayout()
+            label = QLabel("אנא המתן בזמן טעינת הקובץ...")
+            label.setAlignment(Qt.AlignCenter)
+            layout.addWidget(label)
+            please_wait.setLayout(layout)
             
+            # הצגת הדיאלוג
+            please_wait.show()
+            QApplication.processEvents()
+            
+            # טעינת הקובץ
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+                self.text_display.clear()
+                self.text_display.setHtml(content)
+            
+            # סגירת דיאלוג ההמתנה
+            please_wait.done(0)
+            please_wait.deleteLater()
+            return True
+            
+        except UnicodeDecodeError:
+            please_wait.done(0)
+            please_wait.deleteLater()
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
+            return False
         except Exception as e:
-            logging.error(f"Error in load_file_content: {traceback.format_exc()}")
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בטעינת הקובץ: {str(e)}")
-
+            please_wait.done(0)
+            please_wait.deleteLater()
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת הקובץ: {str(e)}")
+            return False
 
     def on_file_loaded(self, result):
         """מטפל בתוצאות טעינת הקובץ"""
-        try:
+        if self.progress_dialog:
             self.progress_dialog.close()
-            
-            if not result['success']:
-                QMessageBox.critical(self, "שגיאה", result['error'])
-                self.status_label.setText("שגיאה בטעינת הקובץ")
-                return
-                
-            content = result['content']
-            file_size_kb = result['file_size'] / 1024
-            
-            # הוספת הסגנונות לתוכן שנטען
-            styled_content = f"""<html>
-            <head>
-                <style type="text/css">
-                    {self.text_styles}
-                </style>
-            </head>
-            <body>
-            {content}
-            </body>
-            </html>"""
-            
-            self.text_display.clear()  # ניקוי תוכן קודם
-            self.text_display.setHtml(styled_content)
-            self.current_content = styled_content
-            self.document_history.push_state(styled_content, "טעינת קובץ")
-            self.status_label.setText(
-                f"נטען: {os.path.basename(self.current_file_path)} ({file_size_kb:.1f} KB)"
-            )
-            
-        except Exception as e:
-            logging.error(f"Error in on_file_loaded: {traceback.format_exc()}")
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
-            self.status_label.setText("שגיאה בעיבוד הקובץ")
 
-            
+        if result['success']:
+            self.text_display.setHtml(result['content'])
+            QMessageBox.information(self, "הקובץ נטען", "הקובץ נטען בהצלחה!")
+            return True
+        else:
+            QMessageBox.critical(self, "שגיאה", result['error'])
+            return False
 
     def select_file(self):
-        """בחירת קובץ"""
+        """בחירת קובץ וטעינתו"""
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self, "בחר קובץ טקסט", "", 
             "קבצי טקסט (*.txt);;כל הקבצים (*.*)", 
             options=options
         )
+    
         if file_path:
-            if not file_path.lower().endswith('.txt'):
-                QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
-                return
+           if not file_path.lower().endswith('.txt'):
+               QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+               return
             
-            self.current_file_path = file_path
-            self.load_file_content(file_path)
-
+           if self.load_file_content(file_path):
+                self.current_file_path = file_path
+                QMessageBox.information(self, "הקובץ נטען", "הקובץ נטען בהצלחה!")
+            
     def refresh_display(self):
         """רענון תצוגת הטקסט לאחר שינויים"""
         if self.current_file_path:
