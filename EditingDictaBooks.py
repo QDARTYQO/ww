@@ -8,8 +8,9 @@ from PyQt5.QtWidgets import (
     QCheckBox, QTextEdit, QDialog, QFrame, QSplitter, QGridLayout, QSpacerItem, QSizePolicy
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap, QCursor
+from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette
 from PyQt5.QtWinExtras import QtWin
+from PyQt5.QtWidgets import QProxyStyle
 from pyluach import gematria
 from bs4 import BeautifulSoup
 import gematriapy
@@ -2462,7 +2463,6 @@ class TextCleanerApp(QWidget):
 # ==========================================
 # Script 12: נקודותיים ורווח
 # ==========================================
-
 class ReplaceColonsAndSpaces(QWidget):
     def __init__(self):
         super().__init__()
@@ -2550,7 +2550,6 @@ class ReplaceColonsAndSpaces(QWidget):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
-   
 # ==========================================
 # Main Menu: תפריט ראשי לבחירת הסקריפטים
 # ==========================================
@@ -2562,22 +2561,136 @@ class MainMenu(QWidget):
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
         self.setLayoutDirection(Qt.RightToLeft)
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 1200, 600)
         self.init_ui()
 
         # הגדרת האייקון לשורת המשימות
         if sys.platform == 'win32':
             QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
-
+    
     def init_ui(self):
-        layout = QVBoxLayout()
-
-        label = QLabel("בחר את התוכנה שברצונך להפעיל")
-        label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet("font-size: 27px;")
-        layout.addWidget(label)
-
+        # יצירת Layout ראשי מסוג QHBoxLayout
+        main_layout = QHBoxLayout()
+        
+        # יצירת Widget מיכל לכפתורים וכפתור אודות
+        right_container = QWidget()
+        right_container.setFixedWidth(550)
+        
+        # Layout אנכי לצד ימין
+        right_layout = QVBoxLayout(right_container)
+        
+        # Layout לכפתורים
         grid_layout = QGridLayout()
+        grid_layout.setContentsMargins(10, 10, 10, 10)
 
+        # יצירת פאנל טקסט וכפתורי פעולה
+        text_container = QWidget()
+        text_layout = QVBoxLayout(text_container)
+        text_layout.setContentsMargins(15, 15, 20, 10)
+        
+        # יצירת כפתורי פעולה
+        action_buttons_layout = QHBoxLayout()
+
+        
+        # כפתור ביטול
+        undo_button = QPushButton("⟲")  # סמל ביטול
+        undo_button.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 14pt;
+
+        """)
+        undo_button.setCursor(QCursor(Qt.PointingHandCursor))
+        undo_button.clicked.connect(lambda: print("undo"))
+        undo_button.setFixedSize(40, 40)
+        undo_button.setToolTip("בטל")
+        
+        # כפתור החזרה
+        redo_button = QPushButton("⟳")  # סמל החזרה
+        redo_button.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 14pt;
+
+        """)
+        redo_button.setCursor(QCursor(Qt.PointingHandCursor))
+        redo_button.clicked.connect(lambda: print("redo"))
+        redo_button.setFixedSize(40, 40)
+        redo_button.setToolTip("חזור")
+        
+        # כפתור שמירה
+        save_button = QPushButton("🖫")  # סמל שמירה
+        save_button.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 14pt;
+        """)
+        save_button.setCursor(QCursor(Qt.PointingHandCursor))
+        save_button.clicked.connect(lambda: print("save"))
+        save_button.setFixedSize(40, 40)
+        save_button.setToolTip("שמור")
+        tooltip_style = """
+            QToolTip {
+                background-color: #eaeaea;
+                color: black;
+                font-weight: normal !important;  /* עובי גופן רגיל (לא מודגש) - חשוב! */
+                font-family: "Segoe UI", Arial !important;
+                font-size: 5pt !important;  /* גודל גופן קטן יותר - חשוב! */
+                padding: 5px;
+                border: 1pt solid #b7b5b5;
+                border-radius: 5px;
+            }
+        """
+        QApplication.instance().setStyleSheet(tooltip_style)
+        
+        # הוספת מרווח גמיש בתחילת שורת הכפתורים (צד ימין)
+        action_buttons_layout.addStretch()
+        # הוספת הכפתורים
+                # יצירת כפתור הוספת קובץ
+        add_file_button = QPushButton("הוסף קובץ")
+        add_file_button.setFixedSize(100, 40)
+        add_file_button.setCursor(QCursor(Qt.PointingHandCursor))
+        add_file_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 20px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 8.5pt;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+        """)
+        add_file_button.clicked.connect(lambda: print("add file clicked")) 
+
+        # סידור הכפתורים בשורה עם הכפתור החדש בצד ימין
+        action_buttons_layout.addWidget(add_file_button)  # הוספת כפתור "הוסף קובץ" בצד ימין
+        action_buttons_layout.addStretch(2)  # הוספת מרווח גמיש באמצע
+        action_buttons_layout.addWidget(undo_button)
+        action_buttons_layout.addWidget(redo_button)
+        action_buttons_layout.addWidget(save_button)
+
+        # הוספת שורת כפתורי הפעולה ל-layout של הטקסט
+        text_layout.insertLayout(0, action_buttons_layout) 
+        spacer = QSpacerItem(0, 20, QSizePolicy.Minimum, QSizePolicy.Fixed)  # 20 פיקסלים מרווח
+        text_layout.addItem(spacer)
+        # הוספת פאנל הטקסט
+        self.text_display = QTextEdit()
+        self.text_display.setReadOnly(True)
+        self.text_display.setStyleSheet("""
+            QTextEdit {
+                background-color: transparent;
+                border: 2px solid black;
+                border-radius: 15px;
+                padding: 5px;
+            }
+            QTextEdit:focus {
+                border: 1px solid black;
+            }
+        """)
+        
+        text_layout.addWidget(self.text_display)
+        
         # רשימת כפתורים עם שמות הפונקציות
         button_info = [
             ("1\n\nיצירת כותרות\nלאוצריא\nהתוכנה הראשית", self.open_create_headers_otzria),
@@ -2594,14 +2707,11 @@ class MainMenu(QWidget):
             ("12\n\nנקודותיים ורווח\n\n", self.open_replace_colons_and_spaces),
         ]
         
-        buttons = []
+        # יצירת והוספת הכפתורים לגריד
         for i, (text, func) in enumerate(button_info):
             button = QPushButton(text)
-            button.setFixedSize(170, 150)  # הגדרת רוחב וגובה שווים (ריבוע)
-            button.setStyleSheet('font-size: 20px;')
-            button.clicked.connect(func)  # קישור כל כפתור לפונקציה המתאימה
-
-            # הוספת עיצוב של שוליים מעוגלים לכל כפתור
+            button.setFixedSize(170, 150)
+            button.clicked.connect(func)
             button.setStyleSheet("""
                 QPushButton {
                     border-radius: 30px;
@@ -2617,36 +2727,60 @@ class MainMenu(QWidget):
                     background-color: #b7b5b5;
                 }
             """)
-            buttons.append(button)
 
-        # מיקום הלחצנים בתוך ה- Grid
-        grid_layout.addWidget(buttons[0], 0, 0)  # שורה 1, טור 1
-        grid_layout.addWidget(buttons[1], 0, 1)  # שורה 1, טור 2
-        grid_layout.addWidget(buttons[2], 0, 2)  # שורה 1, טור 3
-        grid_layout.addWidget(buttons[3], 1, 0)  # שורה 2, טור 1
-        grid_layout.addWidget(buttons[4], 1, 1)  # שורה 2, טור 2
-        grid_layout.addWidget(buttons[5], 1, 2)  # שורה 2, טור 3
-        grid_layout.addWidget(buttons[6], 2, 0)  # שורה 3, טור 1
-        grid_layout.addWidget(buttons[7], 2, 1)  # שורה 3, טור 2
-        grid_layout.addWidget(buttons[8], 2, 2)  # שורה 3, טור 3
-        grid_layout.addWidget(buttons[9], 3, 0)  # שורה 4, טור 1
-        grid_layout.addWidget(buttons[10], 3, 1)  # שורה 4, טור 2
-        grid_layout.addWidget(buttons[11], 3, 2)  # שורה 4, טור 3
+            row = i // 3
+            col = i % 3
+            grid_layout.addWidget(button, row, col)
 
-        # יצירת Layout מסוג VBox עבור כפתור "אודות התוכנה"
-        main_layout = QVBoxLayout()
 
-        # הוספת כפתור "אודות התוכנה"
+        # הוספת הגריד ל-layout הימני
+        right_layout.addLayout(grid_layout)  # רק פעם אחת!
+
+        # יצירת layout אופקי לכפתורים התחתונים
+        bottom_buttons_layout = QHBoxLayout()
+        
+        # יצירת כפתור אודות
         about_button = QPushButton("i")
         about_button.setStyleSheet("font-weight: bold; font-size: 12pt;")
         about_button.setCursor(QCursor(Qt.PointingHandCursor))
         about_button.clicked.connect(self.open_about_dialog)
         about_button.setFixedSize(40, 40)
-        main_layout.addLayout(grid_layout)  # הוספת ה-Grid Layout לתוך ה-VBox
-        main_layout.addWidget(about_button)  # הוספת הכפתור לתחתית
+        
+        # יצירת כפתור עדכונים
+        update_button = QPushButton("⭳")  # סמל הורדה
+        update_button.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 14pt;
+        """)
+        update_button.setCursor(QCursor(Qt.PointingHandCursor))
+        update_button.clicked.connect(lambda: print("update"))  # כאן תוסיף את פונקצית העדכון
+        update_button.setFixedSize(40, 40)
+        update_button.setToolTip("עדכונים")
+        
+        # הוספת הכפתורים ללא stretch
+        bottom_buttons_layout.addWidget(about_button)
+        bottom_buttons_layout.addWidget(update_button)
+        # הוספת מרווח גמיש בצד ימין
+        bottom_buttons_layout.addStretch()
+        
+        # הוספת שורת הכפתורים התחתונה ל-layout הימני
+        right_layout.addLayout(bottom_buttons_layout)
 
-        # הגדרת ה- Layout של החלון
+        # הוספת הרכיבים ל-layout הראשי
+        main_layout.addWidget(right_container)
+        main_layout.addWidget(text_container, stretch=1)
+        
+        # הגדרת ה-layout הראשי לחלון
         self.setLayout(main_layout)
+
+    def undo_action(self):
+        print("undo pressed")
+
+    def redo_action(self):
+        print("redo pressed")
+
+    def save_action(self):
+        print("save pressed")
 
     def open_about_dialog(self):
         """פתיחת חלון 'אודות'"""
@@ -2706,6 +2840,10 @@ class MainMenu(QWidget):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
+
+
+
+
 
 class AboutDialog(QDialog):
     """חלון 'אודות'"""
