@@ -283,37 +283,44 @@ class CreateHeadersOtZria(QWidget):
 # ==========================================
 class CreateSingleLetterHeaders(QWidget):
     changes_made = pyqtSignal()  # הוספת סיגנל
+
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
+        self.file_path = ""  # הגדרת נתיב קובץ ריק
+        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
         self.setWindowTitle("יצירת כותרות לאותיות בודדות")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.setGeometry(100, 100, 650, 300)
         self.init_ui()
 
     def init_ui(self):
-        self.setLayoutDirection(Qt.RightToLeft)  # הגדרת כיוון ימין לשמאל
         layout = QVBoxLayout()
-
-
+        self.setLayoutDirection(Qt.RightToLeft)
 
         # תו בתחילת האות ותו בסוף האות
+        start_char_layout = QHBoxLayout()
         start_char_label = QLabel("תו בתחילת האות:")
+        start_char_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        start_char_label.setStyleSheet("font-size: 20px;")
+        
         self.start_var = QComboBox()
-        self.start_var.setLayoutDirection(Qt.RightToLeft)  # הגדרת כיוון כללי
+        self.start_var.setLayoutDirection(Qt.RightToLeft)
         self.start_var.addItems(["", "(", "["])
-        self.start_var.setStyleSheet("text-align: right;")  # מוודא שהטקסט ייושר לימין
+        self.start_var.setStyleSheet("text-align: right; font-size: 20px;")
+        
         end_char_label = QLabel("     תו/ים בסוף האות:")
+        end_char_label.setStyleSheet("font-size: 20px;")
+        
         self.finde_var = QComboBox()
+        self.finde_var.setStyleSheet("font-size: 20px;")
         self.finde_var.addItems(['', '.', ',', "'", "',", "'.", ']', ')', "']", "')", "].", ").", "],", "),", "'),", "').", "'],", "']."])
-               
-        regex_layout = QHBoxLayout()
-        regex_layout.addWidget(start_char_label)
-        regex_layout.addWidget(self.start_var)
-        regex_layout.addWidget(end_char_label)
-        regex_layout.addWidget(self.finde_var)
-        layout.addLayout(regex_layout)
-       
+        
+        start_char_layout.addWidget(start_char_label)
+        start_char_layout.addWidget(self.start_var)
+        start_char_layout.addWidget(end_char_label)
+        start_char_layout.addWidget(self.finde_var)
+        layout.addLayout(start_char_layout)
+
         # הסבר למשתמש
         explanation = QLabel(
             "שים לב!\nהבחירה בברירת מחדל [השורה הריקה], משמעותה סימון כל האפשרויות."
@@ -328,18 +335,20 @@ class CreateSingleLetterHeaders(QWidget):
         heading_label = QLabel("רמת כותרת:")
         heading_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         heading_label.setStyleSheet("font-size: 20px;")
+        
         self.level_var = QComboBox()
-        self.level_var.setFixedWidth(50)
         self.level_var.setStyleSheet("font-size: 20px;")
+        self.level_var.setFixedWidth(50)
         self.level_var.addItems([str(i) for i in range(2, 7)])
         self.level_var.setCurrentText("3")
+        
         heading_layout.addWidget(heading_label)
         heading_layout.addWidget(self.level_var, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        
         layout.addLayout(heading_layout)
 
         # תיבת סימון לחיפוש עם תווי הדגשה בלבד
         self.bold_var = QCheckBox("לחפש עם תווי הדגשה בלבד")
+        self.bold_var.setStyleSheet("font-size: 20px;")
         self.bold_var.setChecked(True)
         layout.addWidget(self.bold_var)
 
@@ -347,8 +356,12 @@ class CreateSingleLetterHeaders(QWidget):
         ignore_layout = QHBoxLayout()
         ignore_label = QLabel("התעלם מהתווים הבאים:")
         ignore_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        ignore_label.setStyleSheet("font-size: 20px;")
+        
         self.ignore_entry = QLineEdit()
+        self.ignore_entry.setStyleSheet("font-size: 20px;")
         self.ignore_entry.setText('<big> </big> " ')
+        
         ignore_layout.addWidget(ignore_label)
         ignore_layout.addWidget(self.ignore_entry)
         layout.addLayout(ignore_layout)
@@ -357,8 +370,12 @@ class CreateSingleLetterHeaders(QWidget):
         remove_layout = QHBoxLayout()
         remove_label = QLabel("הסר את התווים הבאים:")
         remove_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        remove_label.setStyleSheet("font-size: 20px;")
+        
         self.remove_entry = QLineEdit()
+        self.remove_entry.setStyleSheet("font-size: 20px;")
         self.remove_entry.setText('<b> </b> <big> </big> , : " \' . ( ) [ ] { }')
+        
         remove_layout.addWidget(remove_label)
         remove_layout.addWidget(self.remove_entry)
         layout.addLayout(remove_layout)
@@ -366,10 +383,14 @@ class CreateSingleLetterHeaders(QWidget):
         # מספר סימן מקסימלי
         end_layout = QHBoxLayout()
         end_label = QLabel("מספר סימן מקסימלי:")
+        end_label.setStyleSheet("font-size: 20px;")
+        
         self.end_var = QComboBox()
+        self.end_var.setStyleSheet("font-size: 20px;")
         self.end_var.setFixedWidth(65)
         self.end_var.addItems([str(i) for i in range(1, 1000)])
         self.end_var.setCurrentText("999")
+        
         end_layout.addWidget(end_label)
         end_layout.addWidget(self.end_var)
         layout.addLayout(end_layout)
@@ -383,17 +404,30 @@ class CreateSingleLetterHeaders(QWidget):
 
         self.setLayout(layout)
 
-    def set_file_path(self, path):
+    def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
+        if not file_path or not os.path.isfile(file_path):
+            QMessageBox.critical(self, "שגיאה", "נתיב קובץ לא תקין")
+            return False
+        
+        if not file_path.lower().endswith('.txt'):
+            QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+            return False
+        
+        self.file_path = file_path
+        return True
 
     def run_script(self):
-        book_file = self.file_path()
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+
         finde = self.finde_var.currentText()
         remove = ["<b>", "</b>"] + self.remove_entry.text().split()
         ignore = self.ignore_entry.text().split()
         start = self.start_var.currentText()
         is_bold_checked = self.bold_var.isChecked()
+
         if is_bold_checked:
             finde += "</b>"
             start = "<b>" + start
@@ -407,15 +441,12 @@ class CreateSingleLetterHeaders(QWidget):
             QMessageBox.critical(self, "קלט לא תקין", "אנא הזן 'מספר סימן מקסימלי' ו'רמת כותרת' תקינים")
             return
 
-        if not book_file:
-            QMessageBox.critical(self, "קלט לא תקין", "אנא בחר קובץ")
-            return
-
         try:
-            self.main(book_file, finde, end + 1, level_num, ignore, start, remove)
+            self.main(self.file_path, finde, end + 1, level_num, ignore, start, remove)
             QMessageBox.information(self, "!מזל טוב", "התוכנה רצה בהצלחה!")
+            self.changes_made.emit()  # שליחת סיגנל על שינויים
         except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"אירעה שגיאה: {e}")
+            QMessageBox.critical(self, "שגיאה", f"אירעה שגיאה: {str(e)}")
 
     def ot(self, text, end):
         remove = ["<b>", "</b>", "<big>", "</big>", ":", '"', ",", ";", "[", "]", "(", ")", "'", ".", "״", "‚", "”", "’"]
@@ -466,6 +497,7 @@ class CreateSingleLetterHeaders(QWidget):
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
    
+
 # ==========================================
 # Script 3: הוספת מספר עמוד בכותרת הדף
 # ==========================================
@@ -618,458 +650,545 @@ class AddPageNumberToHeading(QWidget):
 # ==========================================
 class ChangeHeadingLevel(QWidget):
     changes_made = pyqtSignal()  # הוספת סיגנל
+
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
+        self.file_path = ""  # הגדרת נתיב קובץ ריק
+        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
         self.setWindowTitle("שינוי רמת כותרת")
-        self.setGeometry(100, 100, 550, 250)
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 550, 300)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-
-
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # רמת כותרת נוכחית
         current_level_layout = QHBoxLayout()
-        current_level_label = QLabel("רמת כותרת נוכחית: (לדוגמא: 2)")
+        current_level_label = QLabel("רמת כותרת נוכחית:")
         current_level_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         current_level_label.setStyleSheet("font-size: 20px;")
+        
         self.current_level_var = QComboBox()
         self.current_level_var.setStyleSheet("font-size: 20px;")
-        self.current_level_var.setFixedWidth(50)
+        self.current_level_var.setFixedWidth(70)
         self.current_level_var.addItems([str(i) for i in range(1, 10)])
+        self.current_level_var.setCurrentText("2")
+        
         current_level_layout.addWidget(self.current_level_var, alignment=Qt.AlignRight)
         current_level_layout.addWidget(current_level_label)
         layout.addLayout(current_level_layout)
 
         # רמת כותרת חדשה
         new_level_layout = QHBoxLayout()
-        new_level_label = QLabel("רמת כותרת חדשה: (לדוגמא: 3)")
+        new_level_label = QLabel("רמת כותרת חדשה:")
         new_level_label.setStyleSheet("font-size: 20px;")
+        
         self.new_level_var = QComboBox()
         self.new_level_var.setStyleSheet("font-size: 20px;")
-        self.current_level_var.setFixedWidth(50)
+        self.new_level_var.setFixedWidth(70)
         self.new_level_var.addItems([str(i) for i in range(1, 10)])
+        self.new_level_var.setCurrentText("3")
+        
         new_level_layout.addWidget(self.new_level_var, alignment=Qt.AlignRight)
         new_level_layout.addWidget(new_level_label)
         layout.addLayout(new_level_layout)
 
+        # הסבר למשתמש
+        explanation = QLabel(
+            "שים לב!\n"
+            "הכותרות יוחלפו מרמה נוכחית לרמה החדשה.\n"
+            "למשל: מ-H2 ל-H3"
+        )
+        explanation.setAlignment(Qt.AlignCenter)
+        explanation.setStyleSheet("font-size: 18px; color: #666; margin: 20px 0;")
+        explanation.setWordWrap(True)
+        layout.addWidget(explanation)
+
         # כפתור הפעלה
         run_button = QPushButton("שנה רמת כותרת")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
+        run_button.setFixedHeight(50)
+        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
         layout.addWidget(run_button)
 
         self.setLayout(layout)
 
-    def set_file_path(self, path):
+    def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
+        if not file_path or not os.path.isfile(file_path):
+            QMessageBox.critical(self, "שגיאה", "נתיב קובץ לא תקין")
+            return False
+        
+        if not file_path.lower().endswith('.txt'):
+            QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+            return False
+        
+        self.file_path = file_path
+        return True
+
+    def run_script(self):
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+
+        current_level = self.current_level_var.currentText()
+        new_level = self.new_level_var.currentText()
+
+        try:
+            changes_count = self.change_heading_level_func(
+                self.file_path, 
+                int(current_level), 
+                int(new_level)
+            )
+            
+            if changes_count > 0:
+                QMessageBox.information(
+                    self, 
+                    "!מזל טוב", 
+                    f"בוצעו {changes_count} החלפות בהצלחה!"
+                )
+                self.changes_made.emit()  # שליחת סיגנל על שינויים
+            else:
+                QMessageBox.information(
+                    self, 
+                    "!שים לב", 
+                    "לא נמצאו כותרות להחלפה"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "שגיאה", 
+                f"אירעה שגיאה: {str(e)}"
+            )
 
     def change_heading_level_func(self, file_path, current_level, new_level):
-        file_path = self.file_entry.text()
-        if not file_path:
-            QMessageBox.critical(self, "קלט לא תקין", "לא נבחר קובץ!")
-            return
-        # בדיקת סוג הקובץ לפי סיומת
-        if not file_path.lower().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
 
-                current_tag = f"h{current_level}"
-                new_tag = f"h{new_level}"
-                updated_content = re.sub(f"<{current_tag}>(.*?)</{current_tag}>", f"<{new_tag}>\\1</{new_tag}>", content, flags=re.DOTALL)
+            # יצירת דפוס חיפוש דינמי
+            current_tag = f"h{current_level}"
+            new_tag = f"h{new_level}"
+            
+            # ביטוי רגולרי להחלפת תגי כותרות
+            pattern = re.compile(
+                rf'<{current_tag}>(.*?)</{current_tag}>', 
+                re.DOTALL | re.IGNORECASE
+            )
+            
+            # ביצוע ההחלפה
+            updated_content, changes_count = pattern.subn(
+                lambda match: f'<{new_tag}>{match.group(1)}</{new_tag}>', 
+                content
+            )
 
-                if content == updated_content:
-                    QMessageBox.information(self, "!שים לב", "לא נמצא מה להחליף")
-                else:
-                    with open(file_path, 'w', encoding='utf-8') as file:
-                        file.write(updated_content)
-                    QMessageBox.information(self, "!מזל טוב", "רמות הכותרות עודכנו בהצלחה!")
-        
+            # אם בוצעו שינויים, שמירת הקובץ
+            if changes_count > 0:
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(updated_content)
+
+            return changes_count
+
         except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
+            QMessageBox.critical(self, "שגיאה", "הקובץ לא נמצא")
+            return 0
         except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
+            return 0
         except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"ארעה שגיאה במהלך העיבוד: {str(e)}")    
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
+            return 0
 
-    def run_script(self):
-        file_path = self.file_entry.text()
-        current_level = self.current_level_var.currentText()
-        new_level = self.new_level_var.currentText()
-
-        if not current_level.isdigit() or not new_level.isdigit():
-            QMessageBox.critical(self, "קלט לא תקין", "אנא הכנס רמות מספריות חוקיות")
-            return
-
-        self.change_heading_level_func(file_path, current_level, new_level)
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
+        """טעינת אייקון ממחרוזת Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
-   
 # ==========================================
 # Script 5: הדגשת מילה ראשונה וניקוד בסוף קטע
 # ==========================================
 class EmphasizeAndPunctuate(QWidget):
     changes_made = pyqtSignal()  # הוספת סיגנל
+
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
+        self.file_path = ""  # הגדרת נתיב קובץ ריק
+        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
         self.setWindowTitle("הדגשה וניקוד")
-        self.setGeometry(100, 100, 550, 250)
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 550, 350)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
 
-
-       
         # בחירה להוספת נקודה או נקודותיים
-        ending_layout = QHBoxLayout()  # שינוי ל-QHBoxLayout
+        ending_layout = QHBoxLayout()
         ending_label = QLabel("בחר פעולה לסוף קטע:")
         ending_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         ending_label.setStyleSheet("font-size: 20px;")
+        
         self.ending_var = QComboBox()
         self.ending_var.setStyleSheet("font-size: 20px;")
         self.ending_var.addItems(["הוסף נקודותיים", "הוסף נקודה", "ללא שינוי"])
         self.ending_var.setFixedWidth(170)
-        ending_layout.addWidget(self.ending_var, alignment=Qt.AlignRight)  # הוספת תיבת הבחירה קודם
-        ending_layout.addWidget(ending_label)  # הוספת התווית אחר כך
-
+        
+        ending_layout.addWidget(self.ending_var, alignment=Qt.AlignRight)
+        ending_layout.addWidget(ending_label)
         layout.addLayout(ending_layout)
 
         # הדגשת תחילת קטע
         self.emphasize_var = QCheckBox("הדגש את תחילת הקטעים")
         self.emphasize_var.setStyleSheet("font-size: 20px;")
+        self.emphasize_var.setChecked(True)
         layout.addWidget(self.emphasize_var)
+
+        # הסבר למשתמש
+        explanation = QLabel(
+            "הסבר:\n"
+            "• הדגשת תחילת קטעים: מדגיש את המילה הראשונה בקטעים\n"
+            "• הוספת סימן סוף: מוסיף נקודה או נקודותיים בסוף קטעים ארוכים"
+        )
+        explanation.setStyleSheet("font-size: 16px; color: #666; margin: 15px 0;")
+        explanation.setWordWrap(True)
+        explanation.setAlignment(Qt.AlignCenter)
+        layout.addWidget(explanation)
 
         # כפתור הפעלה
         run_button = QPushButton("הפעל")
-        run_button.clicked.connect(self.run_processing)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
+        run_button.clicked.connect(self.run_script)
+        run_button.setFixedHeight(50)
+        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
         layout.addWidget(run_button)
 
         self.setLayout(layout)
 
-    def set_file_path(self, path):
+    def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
+        if not file_path or not os.path.isfile(file_path):
+            QMessageBox.critical(self, "שגיאה", "נתיב קובץ לא תקין")
+            return False
+        
+        if not file_path.lower().endswith('.txt'):
+            QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+            return False
+        
+        self.file_path = file_path
+        return True
+
+    def run_script(self):
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+
+        try:
+            changes_count = self.process_file(
+                self.file_path, 
+                self.ending_var.currentText(), 
+                self.emphasize_var.isChecked()
+            )
+            
+            if changes_count > 0:
+                QMessageBox.information(
+                    self, 
+                    "!מזל טוב", 
+                    f"בוצעו {changes_count} שינויים בהצלחה!"
+                )
+                self.changes_made.emit()  # שליחת סיגנל על שינויים
+            else:
+                QMessageBox.information(
+                    self, 
+                    "!שים לב", 
+                    "לא נמצאו שינויים מתאימים בקובץ"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "שגיאה", 
+                f"אירעה שגיאה בעיבוד הקובץ: {str(e)}"
+            )
 
     def process_file(self, file_path, add_ending, emphasize_start):
-        # בדיקת סוג הקובץ לפי סיומת
-        if not file_path.lower().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return
-        
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
 
-            changed = False
-            for i in range(len(lines)):
-                line = lines[i].rstrip()
+            changes_count = 0
+            new_lines = []
+
+            for line in lines:
+                line = line.rstrip()
                 words = line.split()
 
                 # בדיקה אם יש יותר מעשר מילים ושאין סימן כותרת בהתחלה
-                if len(words) > 10 and not any(line.startswith(f'<h{n}>') for n in range(2, 10)):
-                    # הסרת רווחים ותווים מיותרים בסוף השורה לפני בדיקה
-                    stripped_line = line.rstrip(" .,;:!?)</small></big></b>")  # מסיר תווים מיותרים מסוף השורה
+                if (len(words) > 10 and 
+                    not any(line.startswith(f'<h{n}>') for n in range(2, 10))):
+                    
+                    # הסרת רווחים ותווים מיותרים בסוף השורה
+                    line = line.rstrip(" .,;:!?)</small></big></b>")
 
-                    # מחיקת רווחים לפני נקודה או נקודותיים קיימים בסוף השורה
-                    if line.endswith(('.', ':')):
-                        line = line.rstrip()  # הסרת רווחים מיותרים לפני הסימן
-
-                    # הוספת נקודה או נקודותיים בסוף השורה
-                    if add_ending != "ללא הוספת סימן":
+                    # הוספת סימן סוף
+                    if add_ending != "ללא שינוי":
                         if line.endswith(','):
-                            line = line.rstrip()  # הסרת רווחים מיותרים לפני הוספת הסימן
-                            if add_ending == "הוסף נקודה":
-                                lines[i] = line[:-1] + '.\n'
-                            elif add_ending == "הוסף נקודותיים":
-                                lines[i] = line[:-1] + ':\n'
-                            changed = True
-                        elif not line.endswith(('.', ':', '!', '?')) and not any(line.endswith(tag) for tag in ['</small>', '</big>', '</b>']):
-                            line = line.rstrip()  # הסרת רווחים מיותרים לפני הוספת הסימן
-                            if add_ending == "הוסף נקודה":
-                                lines[i] = line.rstrip() + '.\n'
-                            elif add_ending == "הוסף נקודותיים":
-                                lines[i] = line.rstrip() + ':\n'
-                            changed = True
+                            line = line[:-1]
+                            line += '.' if add_ending == "הוסף נקודה" else ':'
+                            changes_count += 1
+                        elif not line.endswith(('.', ':', '!', '?')) and \
+                             not any(line.endswith(tag) for tag in ['</small>', '</big>', '</b>']):
+                            line += '.' if add_ending == "הוסף נקודה" else ':'
+                            changes_count += 1
 
-                    # הדגשת המילה הראשונה אם אין סימנים מיוחדים
+                    # הדגשת המילה הראשונה
                     if emphasize_start:
                         first_word = words[0]
                         if not any(tag in first_word for tag in ['<b>', '<small>', '<big>', '<h2>', '<h3>', '<h4>', '<h5>', '<h6>']):
                             if not (first_word.startswith('<') and first_word.endswith('>')):
-                                lines[i] = '<b>' + first_word + '</b> ' + ' '.join(words[1:]) + '\n'
-                                changed = True
+                                line = f'<b>{first_word}</b> ' + ' '.join(words[1:])
+                                changes_count += 1
 
-            if changed:
+                new_lines.append(line + '\n')
+
+            # שמירת השינויים
+            if changes_count > 0:
                 with open(file_path, 'w', encoding='utf-8') as file:
-                    file.writelines(lines)
-                QMessageBox.information(self, "!מזל טוב", "השינויים נשמרו בהצלחה")
-            else:
-                QMessageBox.information(self, "!שים לב", "אין מה לשנות בקובץ זה")
+                    file.writelines(new_lines)
+
+            return changes_count
 
         except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
+            QMessageBox.critical(self, "שגיאה", "הקובץ לא נמצא")
+            return 0
         except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
+            return 0
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
+            return 0
 
-    def run_processing(self):
-        selected_file_path = self.file_path_entry.text()
-        if selected_file_path:
-            add_ending = self.ending_var.currentText()
-            emphasize_start = self.emphasize_var.isChecked()
-            self.process_file(selected_file_path, add_ending, emphasize_start)
-        else:
-            QMessageBox.warning(self, "קלט לא תקין", "אנא בחר קובץ תחילה")
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
+        """טעינת אייקון ממחרוזת Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
-   
 # ==========================================
 # Script 6: יצירת כותרות לעמוד ב
 # ==========================================
 class CreatePageBHeaders(QWidget):
     changes_made = pyqtSignal()  # הוספת סיגנל
+
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
-        self.setWindowTitle("'יצירת כותרות ל'עמוד ב")
-        self.setGeometry(100, 100, 550, 300)
+        self.file_path = ""  # הגדרת נתיב קובץ ריק
+        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.setWindowTitle("יצירת כותרות עמוד ב")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 550, 350)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+
+        # בחירת סוג הכותרת
+        header_type_layout = QHBoxLayout()
+        header_type_label = QLabel("סוג כותרת:")
+        header_type_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        header_type_label.setStyleSheet("font-size: 20px;")
+        
+        self.header_type_var = QComboBox()
+        self.header_type_var.setStyleSheet("font-size: 20px;")
+        self.header_type_var.addItems([
+            "עמוד ב", 
+            "עמוד ב ע\"א", 
+            "עמוד ב ע\"ב", 
+            "עמוד ב'", 
+            "עמוד ב׳"
+        ])
+        self.header_type_var.setFixedWidth(170)
+        
+        header_type_layout.addWidget(self.header_type_var, alignment=Qt.AlignRight)
+        header_type_layout.addWidget(header_type_label)
+        layout.addLayout(header_type_layout)
+
+        # רמת כותרת
+        level_layout = QHBoxLayout()
+        level_label = QLabel("רמת כותרת:")
+        level_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        level_label.setStyleSheet("font-size: 20px;")
+        
+        self.level_var = QComboBox()
+        self.level_var.setStyleSheet("font-size: 20px;")
+        self.level_var.addItems([str(i) for i in range(2, 7)])
+        self.level_var.setCurrentText("3")
+        self.level_var.setFixedWidth(70)
+        
+        level_layout.addWidget(self.level_var, alignment=Qt.AlignRight)
+        level_layout.addWidget(level_label)
+        layout.addLayout(level_layout)
 
         # הסבר למשתמש
         explanation = QLabel(
-            "התוכנה יוצרת כותרת בכל מקום בקובץ שכתוב בתחילת שורה -\n"
-            "'עמוד ב', או 'ע\"ב'.\n"
-            "באם כתוב את המילה 'שם' לפני המילים הנ\"ל, המילה 'שם' נמחקת\n"
-            "ובאם כתוב את המילה 'גמרא' לפני המילים 'עמוד ב' או 'ע\"ב'\n"
-            "התוכנה תעביר את המילה 'גמרא' לתחילת השורה שאחרי הכותרת"
+            "הסבר:\n"
+            "• התוכנה תוסיף כותרת 'עמוד ב' לפני קטעים ללא כותרת\n"
+            "• ניתן לבחור סוג כותרת ורמת כותרת שונים"
         )
-        explanation.setAlignment(Qt.AlignCenter)
-        explanation.setStyleSheet("font-size: 18px;")
+        explanation.setStyleSheet("font-size: 16px; color: #666; margin: 15px 0;")
         explanation.setWordWrap(True)
+        explanation.setAlignment(Qt.AlignCenter)
         layout.addWidget(explanation)
-
-
-
-        # רמת כותרת
-        header_layout = QHBoxLayout()
-        header_label = QLabel("בחר רמת כותרת:")
-        header_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header_label.setStyleSheet("font-size: 20px;")
-        self.header_var = QComboBox()
-        self.header_var.setFixedWidth(50)
-        self.header_var.setStyleSheet("font-size: 20px;")
-        self.header_var.addItems([str(i) for i in range(2, 7)])
-        self.header_var.setCurrentText("3")
-        header_layout.addWidget(self.header_var, alignment=Qt.AlignRight)
-        header_layout.addWidget(header_label)
-       
-        layout.addLayout(header_layout)
 
         # כפתור הפעלה
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
+        run_button.setFixedHeight(50)
+        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
         layout.addWidget(run_button)
 
         self.setLayout(layout)
 
-    def set_file_path(self, path):
+    def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
-
-    def build_tag_agnostic_pattern(self, word, optional_end_chars="['\"’]*"):
-        ANY_TAGS_SPACES = r'(?:<[^>]+>\s*)*'
-        pattern = ''
-        for char in word:
-            pattern += ANY_TAGS_SPACES + re.escape(char)
-        pattern += ANY_TAGS_SPACES
-        if optional_end_chars:
-            pattern += optional_end_chars + ANY_TAGS_SPACES
-        return pattern
-
-    def strip_and_replace(self, text, header_level, counter):
-        ANY_TAGS_SPACES = r'(?:<[^>]+>\s*)*'
-        NON_WORD = r'(?:[^\w<>]|$)'  # תו שאינו אות או סוף השורה
-        pattern = r"^\s*" + ANY_TAGS_SPACES
-
-        # אופציונלי: המילה 'שם'
-        shem_pattern = self.build_tag_agnostic_pattern('שם', optional_end_chars='')
-        pattern += r"(?P<shem>" + shem_pattern + r"\s*)?"
-
-        # אופציונלי: 'גמרא' וגרסאותיה
-        gmarah_variants = ['גמרא', 'בגמרא', "גמ'", "בגמ'"]
-        gmarah_patterns = [self.build_tag_agnostic_pattern(word, optional_end_chars='') for word in gmarah_variants]
-        gmarah_pattern = r"(?P<gmarah>" + '|'.join(gmarah_patterns) + r")\s*"
-        pattern += r"(?:" + gmarah_pattern + ")?"
-
-        # 'עמוד ב' או 'ע"ב'
-        ab_variants = ['עמוד ב', 'ע"ב', "ע''ב", "ע'ב"]
-        ab_patterns = [r"(?<!\w)" + self.build_tag_agnostic_pattern(word) + r"(?!\w)" for word in ab_variants]
-        ab_pattern = r"(?P<ab>" + '|'.join(ab_patterns) + r")"
-
-        pattern += ab_pattern
-        pattern += NON_WORD  # לוודא שאין תו אות לאחר מכן
-
-        # שאר השורה
-        pattern += r"(?P<rest>.*)"
-
-        match_pattern = re.compile(pattern, re.IGNORECASE | re.UNICODE)
-
-        def replace_function(match):
-            header = f"<h{header_level}>עמוד ב</h{header_level}>"
-            rest_of_line = match.group('rest').lstrip()
-
-            gmarah_text = match.group('gmarah')
-            if gmarah_text:
-                # הסרת תגים ורווחים
-                gmarah_text = re.sub(ANY_TAGS_SPACES, '', gmarah_text).strip()
-
-            counter[0] += 1  # עדכון המונה
-
-            # בניית הטקסט החדש
-            if gmarah_text:
-                return f"{header}\n{gmarah_text} {rest_of_line}\n" if rest_of_line else f"{header}\n{gmarah_text}\n"
-            else:
-                return f"{header}\n{rest_of_line}\n" if rest_of_line else f"{header}\n"
-
-        # אם כבר יש תג כותרת, לא משנים
-        if re.search(r"<h\d>.*?</h\d>", text, re.IGNORECASE):
-            return text
-
-        # ביצוע ההחלפה
-        new_text = match_pattern.sub(replace_function, text)
-
-        # הסרת שורות ריקות כפולות
-        new_text = re.sub(r'\n\s*\n', '\n', new_text)
-
-        return new_text
-
-    def process_file(self, file_path, header_level):
-        # בדיקת סוג הקובץ לפי סיומת
-        if not file_path.lower().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return
+        if not file_path or not os.path.isfile(file_path):
+            QMessageBox.critical(self, "שגיאה", "נתיב קובץ לא תקין")
+            return False
         
+        if not file_path.lower().endswith('.txt'):
+            QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+            return False
+        
+        self.file_path = file_path
+        return True
+
+    def run_script(self):
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+
+        try:
+            changes_count = self.process_file(
+                self.file_path, 
+                self.header_type_var.currentText(), 
+                int(self.level_var.currentText())
+            )
+            
+            if changes_count > 0:
+                QMessageBox.information(
+                    self, 
+                    "!מזל טוב", 
+                    f"בוצעו {changes_count} שינויים בהצלחה!"
+                )
+                self.changes_made.emit()  # שליחת סיגנל על שינויים
+            else:
+                QMessageBox.information(
+                    self, 
+                    "!שים לב", 
+                    "לא נמצאו שינויים מתאימים בקובץ"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "שגיאה", 
+                f"אירעה שגיאה בעיבוד הקובץ: {str(e)}"
+            )
+
+    def process_file(self, file_path, header_type, heading_level):
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
 
             new_lines = []
-            counter = [0]  # מונה כותרות
+            changes_count = 0
+            is_first_paragraph = True
 
             for line in lines:
-                new_line = self.strip_and_replace(line, header_level, counter)
-                new_lines.append(new_line)
+                # בדיקה אם השורה היא כותרת
+                if any(line.startswith(f'<h{n}>') for n in range(2, 10)):
+                    is_first_paragraph = False
+                    new_lines.append(line)
+                    continue
 
-            with open(file_path, 'w', encoding='utf-8') as file:
-                file.writelines(new_lines)
+                # בדיקה אם השורה ריקה
+                if not line.strip():
+                    new_lines.append(line)
+                    continue
 
-            # הצגת הודעה מתאימה לפי כמות הכותרות שנוצרו
-            if counter[0] == 0:
-                QMessageBox.information(self, "!שים לב", "לא נמצא מה להחליף")
-            else:
-                QMessageBox.information(self, "!מזל טוב", f"נוספו {counter[0]} כותרות לקובץ!")
-        
+                # אם זהו הקטע הראשון ללא כותרת
+                if is_first_paragraph:
+                    # הוספת כותרת עמוד ב
+                    header_line = f'<h{heading_level}>{header_type}</h{heading_level}>\n'
+                    new_lines.append(header_line)
+                    changes_count += 1
+                    is_first_paragraph = False
+
+                new_lines.append(line)
+
+            # שמירת השינויים
+            if changes_count > 0:
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.writelines(new_lines)
+
+            return changes_count
+
         except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
+            QMessageBox.critical(self, "שגיאה", "הקובץ לא נמצא")
+            return 0
         except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return        
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
+            return 0
         except Exception as e:
-            QMessageBox.critical(self, "קלט לא תקין", f"שגיאה בפתיחת קובץ: {e}")
-            return
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
+            return 0
 
-    def run_script(self):
-        file_path = self.file_entry.text()
-        try:
-            header_level = int(self.header_var.currentText())  # המרה למספר שלם
-        except ValueError:
-            QMessageBox.warning(self, "שגיאה", "רמת הכותרת צריכה להיות מספר בין 2 ל-6")
-            return
-
-        if not file_path:
-            QMessageBox.warning(self, "קלט לא תקין", "בחר קובץ תחילה")
-            return
-
-        if header_level < 2 or header_level > 6:
-            QMessageBox.warning(self, "שגיאה", "בחר רמת כותרת בין 2 ל-6")
-            return
-
-        self.process_file(file_path, header_level)
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
+        """טעינת אייקון ממחרוזת Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
-   
 # ==========================================
 # Script 7: החלפת כותרות לעמוד ב
 # ==========================================
 class ReplacePageBHeaders(QWidget):
     changes_made = pyqtSignal()  # הוספת סיגנל
+
     def __init__(self):
         super().__init__()
         self.file_path = "" 
-        self.setWindowTitle("'החלפת כותרות ל'עמוד ב")
+        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.setWindowTitle("החלפת כותרות ל'עמוד ב'")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 550, 350)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
 
         # הסבר למשתמש
         explanation = QLabel(
-            "שים לב!\nהתוכנה פועלת רק אם הדפים והעמודים הוגדרו כבר ככותרות\n[לא משנה באיזה רמת כותרת]\nכגון:  <h3>עמוד ב</h3> או: <h2>עמוד ב</h2> וכן הלאה\n\nזהירות!\nבדוק היטב שלא פספסת שום כותרת של 'דף' לפני שאתה מריץ תוכנה זו\nכי במקרה של פספוס, הכותרת 'עמוד ב' שאחרי הפספוס תהפך לכותרת שגויה\n"
+            "שים לב!\nהתוכנה פועלת רק אם הדפים והעמודים הוגדרו כבר ככותרות\n"
+            "[לא משנה באיזו רמת כותרת]\nכגון:  <h3>עמוד ב</h3> או: <h2>עמוד ב</h2> וכן הלאה\n\n"
+            "זהירות!\nבדוק היטב שלא פספסת שום כותרת של 'דף' לפני שאתה מריץ תוכנה זו\n"
+            "כי במקרה של פספוס, הכותרת 'עמוד ב' שאחרי הפספוס תהפך לכותרת שגויה"
         )
         explanation.setAlignment(Qt.AlignCenter)
-        explanation.setStyleSheet("font-size: 18px;")
+        explanation.setStyleSheet("font-size: 18px; color: #666; margin-bottom: 20px;")
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
-
-
 
         # סוג ההחלפה
         replace_layout = QHBoxLayout()
         replace_label = QLabel("בחר את סוג ההחלפה:")
         replace_label.setStyleSheet("font-size: 20px;")
         replace_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        
         self.replace_type = QComboBox()
         self.replace_type.setFixedWidth(140)
         self.replace_type.setStyleSheet("font-size: 20px;")
         self.replace_type.addItems(["נקודותיים", "ע\"ב"])
+        
         replace_layout.addWidget(self.replace_type, alignment=Qt.AlignRight)
         replace_layout.addWidget(replace_label)
         layout.addLayout(replace_layout)
@@ -1077,39 +1196,69 @@ class ReplacePageBHeaders(QWidget):
         # דוגמאות
         example1 = QLabel("לדוגמא:\nדף ב:   דף ג:   דף ד:   דף ה:\nוכן הלאה")
         example1.setAlignment(Qt.AlignCenter)
-        example1.setStyleSheet("font-size: 16px;")
+        example1.setStyleSheet("font-size: 16px; margin: 10px 0;")
         example1.setWordWrap(True)
         layout.addWidget(example1)
 
         example2 = QLabel("או:\nדף ב ע\"ב   דף ג ע\"ב   דף ד ע\"ב   דף ה ע\"ב\nוכן הלאה")
         example2.setAlignment(Qt.AlignCenter)
-        example2.setStyleSheet("font-size: 16px;")
+        example2.setStyleSheet("font-size: 16px; margin: 10px 0;")
         example2.setWordWrap(True)
         layout.addWidget(example2)
 
         # כפתור הפעלה
         run_button = QPushButton("בצע החלפה")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
+        run_button.setFixedHeight(50)
+        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
         layout.addWidget(run_button)
 
         self.setLayout(layout)
 
-    def set_file_path(self, path):
+    def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
-
-    def update_file(self, replace_type):
-        file_path = self.file_entry.text()
-        if not file_path:
-            QMessageBox.critical(self, "קלט לא תקין", "לא נבחר קובץ!")
-            return
-        # בדיקת סוג הקובץ לפי סיומת
+        if not file_path or not os.path.isfile(file_path):
+            QMessageBox.critical(self, "שגיאה", "נתיב קובץ לא תקין")
+            return False
+        
         if not file_path.lower().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return      
+            QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+            return False
+        
+        self.file_path = file_path
+        return True
 
+    def run_script(self):
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+
+        replace_type = self.replace_type.currentText()
+
+        try:
+            replacements_made = self.update_file(self.file_path, replace_type)
+            
+            if replacements_made > 0:
+                QMessageBox.information(
+                    self, 
+                    "!מזל טוב", 
+                    f"בוצעו {replacements_made} החלפות בהצלחה!"
+                )
+                self.changes_made.emit()  # שליחת סיגנל על שינויים
+            else:
+                QMessageBox.information(
+                    self, 
+                    "!שים לב", 
+                    "לא נמצאו כותרות להחלפה"
+                )
+        except Exception as e:
+            QMessageBox.critical(
+                self, 
+                "שגיאה", 
+                f"אירעה שגיאה בעיבוד הקובץ: {str(e)}"
+            )
+
+    def update_file(self, file_path, replace_type):
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -1147,27 +1296,20 @@ class ReplacePageBHeaders(QWidget):
             with open(file_path, 'w', encoding='utf-8') as file:
                 file.write(content)
 
-            if replacements_made == 0:
-                QMessageBox.information(self, "!שים לב", "לא נמצא מה להחליף")
-            else:
-                QMessageBox.information(self, "!מזל טוב", f"הקובץ עודכן בהצלחה!\n\nבוצעו {replacements_made} החלפות")
-        
+            return replacements_made
+
         except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
+            QMessageBox.critical(self, "שגיאה", "הקובץ לא נמצא")
+            return 0
         except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
+            return 0
         except Exception as e:
-            QMessageBox.critical(self, "קלט לא תקין", f"שגיאה בפתיחת קובץ: {e}")
-            return
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
+            return 0
 
-    def run_script(self):
-        replace_type = self.replace_type.currentText()
-        self.update_file(replace_type)
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
+        """טעינת אייקון ממחרוזת Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
@@ -2442,12 +2584,11 @@ class ReplaceColonsAndSpaces(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
 
+        # הודעת הסבר
         label = QLabel("תוכנה זו מחליפה את התווים - נקודותיים ורווח, בנקודותיים ואנטר\nתוכנה זו כבר לא אקטואלית למי שמשתמש בגירסה 4.4 ואילך של ספרי דיקטה")
         label.setAlignment(Qt.AlignCenter)
         label.setStyleSheet("font-size: 20px;")
         layout.addWidget(label)
-
-
 
         # כפתור הפעלה
         run_button = QPushButton("הפעל")
@@ -2463,17 +2604,17 @@ class ReplaceColonsAndSpaces(QWidget):
         self.file_path = path
 
     def run_processing(self):
-        file_path = self.file_path_entry.text()
-        if not file_path:
+        if not self.file_path:
             QMessageBox.warning(self, "קלט לא תקין", "לא נבחר קובץ!")
             return
+        
         # בדיקת סוג הקובץ לפי סיומת
-        if not file_path.lower().endswith('.txt'):
+        if not self.file_path.lower().endswith('.txt'):
             QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
             return      
 
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
+            with open(self.file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
 
             # שלב 1: החלפת רצפים של רווחים באנטר בלבד
@@ -2485,9 +2626,10 @@ class ReplaceColonsAndSpaces(QWidget):
             if content == new_content:
                 QMessageBox.information(self, "!שים לב", "לא נמצא מה להחליף")
             else:
-                with open(file_path, 'w', encoding='utf-8') as file:
+                with open(self.file_path, 'w', encoding='utf-8') as file:
                     file.write(new_content)
                 QMessageBox.information(self, "!מזל טוב", "ההחלפה הושלמה בהצלחה!")
+                self.changes_made.emit()  # פליטת האות שינויים בוצעו
         
         except FileNotFoundError:
             QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
