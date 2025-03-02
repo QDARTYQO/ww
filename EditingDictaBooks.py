@@ -11,6 +11,7 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette
 from PyQt5.QtWinExtras import QtWin
 from PyQt5.QtWidgets import QProxyStyle
+from PyQt5.QtCore import pyqtSignal
 from pyluach import gematria
 from bs4 import BeautifulSoup
 import gematriapy
@@ -30,8 +31,11 @@ icon_base64 = "iVBORw0KGgoAAAANSUhEUgAAAGAAAABgCAYAAADimHc4AAAGP0lEQVR4Ae2dfUgUa
 # ==========================================
 
 class CreateHeadersOtZria(QWidget):
+    changes_made = pyqtSignal()
+    
     def __init__(self):
         super().__init__()
+        self.file_path = ""  # משתנה חדש לאחסון נתיב הקובץ
         self.setWindowTitle("יצירת כותרות לאוצריא")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.setGeometry(100, 100, 600, 300)
@@ -40,19 +44,6 @@ class CreateHeadersOtZria(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
        
-        # נתיב קובץ
-        file_layout = QHBoxLayout()
-        browse_button = QPushButton("עיון")
-        browse_button.clicked.connect(self.browse_file)
-        browse_button.setStyleSheet("font-size: 20px;")
-        self.file_entry = QLineEdit()
-        file_label = QLabel("נתיב קובץ:")
-        file_label.setStyleSheet("font-size: 20px;")
-        file_layout.addWidget(browse_button)
-        file_layout.addWidget(self.file_entry)
-        file_layout.addWidget(file_label)
-        layout.addLayout(file_layout)
-
         # מילה לחיפוש
         search_layout = QHBoxLayout()
         search_label = QLabel("מילה לחפש:")
@@ -61,11 +52,11 @@ class CreateHeadersOtZria(QWidget):
         self.level_var = QComboBox()
         self.level_var.setLayoutDirection(Qt.RightToLeft)
         self.level_var.setStyleSheet("font-size: 20px;")
-        self.level_var.setFixedSize(150, 40)  # רוחב: 150 פיקסלים, גובה: 40 פיקסלים
+        self.level_var.setFixedSize(150, 40)
         self.level_var.setLayoutDirection(Qt.RightToLeft)
         search_choices = ["דף", "עמוד", "פרק", "פסוק", "שאלה", "סימן", "סעיף", "הלכה", "הלכות", "סק"]
         self.level_var.addItems(search_choices)
-        self.level_var.setEditable(True)  # מאפשר להקליד
+        self.level_var.setEditable(True)
         search_layout.addWidget(self.level_var)
         search_layout.addWidget(search_label)
        
@@ -73,7 +64,10 @@ class CreateHeadersOtZria(QWidget):
 
         # הסבר למשתמש
         explanation = QLabel(
-            "בתיבת 'מילה לחפש' יש לבחור או להקליד את המילה בה אנו רוצים שתתחיל הכותרת.\nלדוג': פרק/פסוק/סימן/סעיף/הלכה/שאלה/עמוד/סק\n\nשים לב!\nאין להקליד רווח אחרי המילה, וכן אין להקליד את התו גרש (') או גרשיים (\"), וכן אין להקליד יותר ממילה אחת\n"
+            "בתיבת 'מילה לחפש' יש לבחור או להקליד את המילה בה אנו רוצים שתתחיל הכותרת.\n"
+            "לדוג': פרק/פסוק/סימן/סעיף/הלכה/שאלה/עמוד/סק\n\n"
+            "שים לב!\n"
+            "אין להקליד רווח אחרי המילה, וכן אין להקליד את התו גרש (') או גרשיים (\"), וכן אין להקליד יותר ממילה אחת\n"
         )
         explanation.setAlignment(Qt.AlignCenter)
         explanation.setStyleSheet("font-size: 21px;")
@@ -100,7 +94,6 @@ class CreateHeadersOtZria(QWidget):
         self.heading_level_var.setStyleSheet("font-size: 20px;")
         self.heading_level_var.addItems([str(i) for i in range(2, 7)])
         self.heading_level_var.setCurrentText("2")
-        self.heading_level_var.setStyleSheet("font-size: 20px;")
         self.heading_level_var.setFixedWidth(50)
         heading_layout.addWidget(self.heading_level_var, alignment=Qt.AlignRight)
         heading_layout.addWidget(self.heading_label)
@@ -115,20 +108,15 @@ class CreateHeadersOtZria(QWidget):
 
         self.setLayout(layout)
 
-    def browse_file(self):
-        options = QFileDialog.Options()
-        filename, _ = QFileDialog.getOpenFileName(
-            self, "בחר קובץ", "", "קבצי טקסט (*.txt);;כל הפורמטים (*.*)", options=options
-        )
-        if filename:
-            self.file_entry.setText(filename)
+    def set_file_path(self, path):
+        """מקבלת את נתיב הקובץ מהחלון הראשי"""
+        self.file_path = path
 
     def show_custom_message(self, title, message_parts, window_size=("560x330")):
         msg = QMessageBox(self)
         msg.setWindowTitle(title)
         msg.setIcon(QMessageBox.Information)
 
-        # בניית ההודעה עם גודל גופן שונה
         full_message = ""
         for part in message_parts:
             if len(part) == 3 and part[2] == "bold":
@@ -190,29 +178,36 @@ class CreateHeadersOtZria(QWidget):
         return found, count_headings
 
     def run_script(self):
-        book_file = self.file_entry.text()
-        finde = self.level_var.currentText()
         try:
-            end = int(self.end_var.currentText())
-            level_num = int(self.heading_level_var.currentText())
-        except ValueError:
-            self.show_custom_message(
-                "קלט לא תקין",
-                [("אנא הזן 'מספר סימן מקסימלי' ו'רמת כותרת' תקינים", 12)],
-                "250x150"
-            )
-            return
+            if not self.file_path:  # בדיקה שיש נתיב קובץ
+                self.show_custom_message(
+                    "שגיאה",
+                    [("לא נבחר קובץ", 12)],
+                    "250x80"
+                )
+                return
 
-        if not book_file or not finde:
-            self.show_custom_message(
-                "קלט לא תקין",
-                [("אנא מלא את כל השדות", 12)],
-                "250x80"
-            )
-            return
+            finde = self.level_var.currentText()
+            try:
+                end = int(self.end_var.currentText())
+                level_num = int(self.heading_level_var.currentText())
+            except ValueError:
+                self.show_custom_message(
+                    "קלט לא תקין",
+                    [("אנא הזן 'מספר סימן מקסימלי' ו'רמת כותרת' תקינים", 12)],
+                    "250x150"
+                )
+                return
 
-        try:
-            found, count_headings = self.main(book_file, finde, end + 1, level_num)
+            if not finde:
+                self.show_custom_message(
+                    "קלט לא תקין",
+                    [("אנא מלא את כל השדות", 12)],
+                    "250x80"
+                )
+                return
+
+            found, count_headings = self.main(self.file_path, finde, end + 1, level_num)
             if found and count_headings > 0:
                 detailed_message = [
                     ("<div style='text-align: center;'>התוכנה רצה בהצלחה!</div>", 12),
@@ -222,12 +217,12 @@ class CreateHeadersOtZria(QWidget):
                     ("<div style='text-align: center;'>שים לב! אם הספר כבר פתוח ב'אוצריא', יש לסגור אותו ולפתוח אותו שוב, אך אין צורך להפעיל את התוכנה מחדש</div>", 9),
                 ]
                 self.show_custom_message("!מזל טוב", detailed_message, "560x310")
+                self.changes_made.emit()  # שליחת סיגנל שבוצעו שינויים
             else:
                 self.show_custom_message("!שים לב", [("לא נמצא מה להחליף", 12)], "250x80")
         except Exception as e:
             self.show_custom_message("שגיאה", [("אירעה שגיאה: " + str(e), 12)], "250x150")
 
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
@@ -356,7 +351,7 @@ class CreateSingleLetterHeaders(QWidget):
             self.file_entry.setText(filename)
 
     def run_script(self):
-        book_file = self.file_entry.text()
+        book_file = self.file_path()
         finde = self.finde_var.currentText()
         remove = ["<b>", "</b>"] + self.remove_entry.text().split()
         ignore = self.ignore_entry.text().split()
@@ -2556,7 +2551,8 @@ class ReplaceColonsAndSpaces(QWidget):
 class MainMenu(QWidget):
     def __init__(self):
         super().__init__()
-       
+        self.current_file_path = ""
+        
         # הגדרת החלון
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
         self.setLayoutDirection(Qt.RightToLeft)
@@ -2661,7 +2657,7 @@ class MainMenu(QWidget):
                 background-color: #b7b5b5;
             }
         """)
-        add_file_button.clicked.connect(lambda: print("add file clicked")) 
+        add_file_button.clicked.connect(self.select_file) 
 
         # סידור הכפתורים בשורה עם הכפתור החדש בצד ימין
         action_buttons_layout.addWidget(add_file_button)  # הוספת כפתור "הוסף קובץ" בצד ימין
@@ -2842,7 +2838,163 @@ class MainMenu(QWidget):
         return QIcon(pixmap)
 
 
+    def load_file_content(self, file_path):
+        """טעינת תוכן הקובץ וחזרה האם הטעינה הצליחה"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                self.original_content = file.read()
+                self.text_display.setPlainText(self.original_content)
+                return True
+        except UnicodeDecodeError:
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
+            return False
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת הקובץ: {str(e)}")
+            return False
 
+    def select_file(self):
+        """פונקציה לבחירת קובץ, טעינתו והצגתו"""
+        options = QFileDialog.Options()
+        file_path, _ = QFileDialog.getOpenFileName(
+            self, "בחר קובץ טקסט", "", 
+            "קבצי טקסט (*.txt);;כל הקבצים (*.*)", 
+            options=options
+        )
+        if file_path:
+            if not file_path.lower().endswith('.txt'):
+                QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
+                return
+            
+            if self.load_file_content(file_path):
+                self.current_file_path = file_path
+                QMessageBox.information(self, "הקובץ נטען", "הקובץ נטען בהצלחה!")
+
+    def refresh_display(self):
+        """רענון תצוגת הטקסט לאחר שינויים"""
+        if self.current_file_path:
+            self.load_file_content(self.current_file_path)
+
+    def update_content_from_child(self):
+        """עדכון התצוגה לאחר שינויים בחלונות המשנה"""
+        if self.current_file_path:
+            self.load_file_content(self.current_file_path)
+
+
+
+    # סקריפט 1 - יצירת כותרות לאוצריא
+    def open_create_headers_otzria(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.create_headers_window = CreateHeadersOtZria()
+        self.create_headers_window.file_entry.setText(self.current_file_path)
+        self.create_headers_window.changes_made.connect(self.update_content_from_child)
+        self.create_headers_window.show()
+
+    # סקריפט 2 - יצירת כותרות לאותיות בודדות
+    def open_create_single_letter_headers(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.create_single_letter_headers_window = CreateSingleLetterHeaders()
+        self.create_single_letter_headers_window.file_entry.setText(self.current_file_path)
+        self.create_single_letter_headers_window.changes_made.connect(self.update_content_from_child)
+        self.create_single_letter_headers_window.show()
+
+    # סקריפט 3 - הוספת מספר עמוד בכותרת הדף
+    def open_add_page_number_to_heading(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.add_page_number_window = AddPageNumberToHeading()
+        self.add_page_number_window.file_entry.setText(self.current_file_path)
+        self.add_page_number_window.changes_made.connect(self.update_content_from_child)
+        self.add_page_number_window.show()
+
+    # סקריפט 4 - שינוי רמת כותרת
+    def open_change_heading_level(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.change_heading_level_window = ChangeHeadingLevel()
+        self.change_heading_level_window.file_entry.setText(self.current_file_path)
+        self.change_heading_level_window.changes_made.connect(self.update_content_from_child)
+        self.change_heading_level_window.show()
+
+    # סקריפט 5 - הדגשת מילה ראשונה וניקוד בסוף קטע
+    def open_emphasize_and_punctuate(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.emphasize_and_punctuate_window = EmphasizeAndPunctuate()
+        self.emphasize_and_punctuate_window.file_path_entry.setText(self.current_file_path)
+        self.emphasize_and_punctuate_window.changes_made.connect(self.update_content_from_child)
+        self.emphasize_and_punctuate_window.show()
+
+    # סקריפט 6 - יצירת כותרות לעמוד ב
+    def open_create_page_b_headers(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.create_page_b_headers_window = CreatePageBHeaders()
+        self.create_page_b_headers_window.file_entry.setText(self.current_file_path)
+        self.create_page_b_headers_window.changes_made.connect(self.update_content_from_child)
+        self.create_page_b_headers_window.show()
+
+    # סקריפט 7 - החלפת כותרות לעמוד ב
+    def open_replace_page_b_headers(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.replace_page_b_headers_window = ReplacePageBHeaders()
+        self.replace_page_b_headers_window.file_entry.setText(self.current_file_path)
+        self.replace_page_b_headers_window.changes_made.connect(self.update_content_from_child)
+        self.replace_page_b_headers_window.show()
+
+    # סקריפט 8 - בדיקת שגיאות בכותרות
+    def open_check_heading_errors_original(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.check_heading_errors_original_window = CheckHeadingErrorsOriginal()
+        self.check_heading_errors_original_window.file_path_edit.setText(self.current_file_path)
+        self.check_heading_errors_original_window.process_file(self.current_file_path)
+        self.check_heading_errors_original_window.show()
+
+    # סקריפט 9 - בדיקת שגיאות בכותרות מותאם לספרים על הש"ס
+    def open_check_heading_errors_custom(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.check_heading_errors_custom_window = CheckHeadingErrorsCustom()
+        self.check_heading_errors_custom_window.file_path_edit.setText(self.current_file_path)
+        self.check_heading_errors_custom_window.process_file(self.current_file_path)
+        self.check_heading_errors_custom_window.show()
+
+    # סקריפט 10 - המרת תמונה לטקסט
+    def open_Image_To_Html_App(self):
+        self.Image_To_Html_App_window = ImageToHtmlApp()
+        self.Image_To_Html_App_window.show()
+
+    # סקריפט 11 - תיקון שגיאות נפוצות
+    def open_Text_Cleaner_App(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.Text_Cleaner_App_window = TextCleanerApp()
+        self.Text_Cleaner_App_window.filePath.setText(self.current_file_path)
+        self.Text_Cleaner_App_window.changes_made.connect(self.update_content_from_child)
+        self.Text_Cleaner_App_window.show()
+
+    # סקריפט 12 - נקודותיים ורווח
+    def open_replace_colons_and_spaces(self):
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        self.replace_colons_and_spaces_window = ReplaceColonsAndSpaces()
+        self.replace_colons_and_spaces_window.file_path_entry.setText(self.current_file_path)
+        self.replace_colons_and_spaces_window.changes_made.connect(self.update_content_from_child)
+        self.replace_colons_and_spaces_window.show()    
 
 
 class AboutDialog(QDialog):
