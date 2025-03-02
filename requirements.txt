@@ -1,0 +1,6 @@
+PyQt5==5.15.9
+beautifulsoup4==4.12.2
+pyluach==2.2.0
+gematriapy==0.1.0
+packaging==23.1
+requests==2.31.0
