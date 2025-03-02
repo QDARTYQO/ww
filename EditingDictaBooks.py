@@ -5,16 +5,17 @@ from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QPushButton, QVBoxLayout, QLabel,
     QLayout, QFileDialog, QLineEdit, QMessageBox, QComboBox, QHBoxLayout,
-    QCheckBox, QTextEdit, QDialog, QFrame, QSplitter, QGridLayout, QSpacerItem, QSizePolicy
+    QCheckBox, QTextEdit, QDialog, QFrame, QSplitter, QGridLayout, QSpacerItem, QSizePolicy, QApplication
 )
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette
 from PyQt5.QtWinExtras import QtWin
 from PyQt5.QtWidgets import QProxyStyle, QMessageBox
-from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal
+from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer
+
+
 from pyluach import gematria
 from bs4 import BeautifulSoup
-import gematriapy
 import re
 import os
 import requests
@@ -23,6 +24,19 @@ import shutil
 from packaging import version
 import base64
 import urllib.request
+
+from PyQt5 import QtCore
+import traceback
+
+
+
+
+def handle_exception(exc_type, exc_value, exc_traceback):
+    """טיפול בשגיאות לא מטופלות"""
+    print(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
+    
+# הגדרת מטפל שגיאות גלובלי
+sys.excepthook = handle_exception
 
 GLOBAL_STYLE = """
     QWidget {
@@ -88,7 +102,7 @@ class CreateHeadersOtZria(QWidget):
     
     def __init__(self):
         super().__init__()
-        self.setStyleSheet(GLOBAL_STYLE)  # הוספת הסגנון הגלובלי
+        self.setStyleSheet(GLOBAL_STYLE)
         self.file_path = ""
         self.setWindowTitle("יצירת כותרות לאוצריא")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
@@ -97,6 +111,7 @@ class CreateHeadersOtZria(QWidget):
 
     def init_ui(self):
         layout = QVBoxLayout()
+        self.setLayout(layout)  # חשוב! צריך להגדיר את ה-layout לחלון
        
         # מילה לחיפוש
         search_layout = QHBoxLayout()
@@ -111,7 +126,6 @@ class CreateHeadersOtZria(QWidget):
         self.level_var.setEditable(True)
         search_layout.addWidget(self.level_var)
         search_layout.addWidget(search_label)
-       
         layout.addLayout(search_layout)
 
         # הסבר למשתמש
@@ -146,15 +160,33 @@ class CreateHeadersOtZria(QWidget):
         self.heading_level_var.setFixedWidth(50)
         heading_layout.addWidget(self.heading_level_var, alignment=Qt.AlignRight)
         heading_layout.addWidget(self.heading_label)
-        layout.addLayout(heading_layout)
-           
-        # כפתור הפעלה
+        layout.addLayout(heading_layout)      
+
+        # כפתור הפעל
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignCenter)
+        
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(40)
-        layout.addWidget(run_button)
-
-        self.setLayout(layout)
+        run_button.setFixedSize(250, 75)
+        run_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 25px;
+                padding: 10px;
+                margin: 5;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12pt;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+        """)
+        
+        button_layout.addWidget(run_button)
+        layout.addLayout(button_layout)
 
     def set_file_path(self, path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
@@ -291,6 +323,22 @@ class CreateSingleLetterHeaders(QWidget):
         self.setWindowTitle("יצירת כותרות לאותיות בודדות")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.setGeometry(100, 100, 650, 300)
+        
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+class CreateSingleLetterHeaders(QWidget):
+    changes_made = pyqtSignal()  # הוספת סיגנל
+
+    def __init__(self):
+        super().__init__()
+        self.file_path = ""  # הגדרת נתיב קובץ ריק
+        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.setWindowTitle("יצירת כותרות לאותיות בודדות")
+        self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 650, 300)
+        
         self.init_ui()
 
     def init_ui(self):
@@ -394,15 +442,35 @@ class CreateSingleLetterHeaders(QWidget):
         end_layout.addWidget(end_label)
         end_layout.addWidget(self.end_var)
         layout.addLayout(end_layout)
-
-        # כפתור הפעלה
+      
+        # כפתור הפעל
+        button_layout = QHBoxLayout()
+        button_layout.setAlignment(Qt.AlignCenter)
+        
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
-        layout.addWidget(run_button)
+        run_button.setFixedSize(250, 75)
+        run_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 25px;
+                padding: 10px;
+                margin: 5;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12pt;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+        """)
+        
+        button_layout.addWidget(run_button)
+        layout.addLayout(button_layout)
+        self.setLayoutDirection(Qt.RightToLeft)
 
-        self.setLayout(layout)
+
 
     def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
@@ -418,10 +486,10 @@ class CreateSingleLetterHeaders(QWidget):
         return True
 
     def run_script(self):
-        if not self.file_path:
-            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+        if not self.current_file_path:
+            self.show_error_message("שגיאה", "אנא בחר קובץ תחילה")
             return
-
+        
         finde = self.finde_var.currentText()
         remove = ["<b>", "</b>"] + self.remove_entry.text().split()
         ignore = self.ignore_entry.text().split()
@@ -502,10 +570,11 @@ class CreateSingleLetterHeaders(QWidget):
 # Script 3: הוספת מספר עמוד בכותרת הדף
 # ==========================================
 class AddPageNumberToHeading(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
+        self.file_path = ""
         self.setWindowTitle("הוספת מספר עמוד בכותרת הדף")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.init_ui()
@@ -525,33 +594,10 @@ class AddPageNumberToHeading(QWidget):
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-
         # סוג ההחלפה
-        heading_layout = QHBoxLayout()
-        replacement_label = QLabel("בחר את סוג ההחלפה:")
-        replacement_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        replacement_label.setStyleSheet("font-size: 20px;")
         self.replace_option = QComboBox()
-        self.replace_option.setStyleSheet("font-size: 20px;")
         self.replace_option.addItems(["נקודה ונקודותיים", "ע\"א וע\"ב"])
-        self.replace_option.setFixedWidth(180)
-        heading_layout.addWidget(self.replace_option, alignment=Qt.AlignRight)
-        heading_layout.addWidget(replacement_label)
-       
-        layout.addLayout(heading_layout)
-
-        # דוגמאות
-        example1 = QLabel("לדוגמא:\nדף ב.   דף ב:   דף ג.   דף ג: דף ד. דף ד:\nוכן הלאה")
-        example1.setAlignment(Qt.AlignCenter)
-        example1.setStyleSheet("font-size: 16px;")
-        example1.setWordWrap(True)
-        layout.addWidget(example1)
-
-        example2 = QLabel("או:\nדף ב ע\"א   דף ב ע\"ב   דף ג ע\"א   דף ג ע\"ב\nוכן הלאה")
-        example2.setAlignment(Qt.AlignCenter)
-        example2.setStyleSheet("font-size: 16px;")
-        example2.setWordWrap(True)
-        layout.addWidget(example2)
+        layout.addWidget(self.replace_option)
 
         # כפתור הפעלה
         run_button = QPushButton("בצע החלפה")
@@ -563,83 +609,67 @@ class AddPageNumberToHeading(QWidget):
         self.setLayout(layout)
 
     def set_file_path(self, path):
-        """מקבלת את נתיב הקובץ מהחלון הראשי"""
         self.file_path = path
 
     def process_file(self, filename, replace_with):
         try:
             with open(filename, 'r', encoding='utf-8') as file:
                 content = file.readlines()
-        except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
-        except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
         except Exception as e:
-            QMessageBox.critical(self, "קלט לא תקין", f"שגיאה בפתיחת קובץ: {e}")
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת הקובץ: {str(e)}")
             return
 
-        updated_content = []
         changes_made = False
-
+        updated_content = []
         i = 0
+
         while i < len(content):
             line = content[i]
             match = re.match(r'<h([2-9])>(דף \S+)</h\1>', line)
-            if match:
+            
+            if match and i + 1 < len(content):
                 level = match.group(1)
                 title = match.group(2)
-                next_line_index = i + 1
-                if next_line_index < len(content):
-                    next_line = content[next_line_index].strip()
-
-                    pattern = r'(<[a-z]+>)?(ע["\']+?[א-ב]|עמוד [א-ב])[.,:()\[\]\'"״׳]?(</[a-z]+>)?\s?'
-                    match_next_line = re.match(pattern, next_line)
-
-                    if match_next_line:
-                        changes_made = True
-
-                        if replace_with == 'נקודה ונקודותיים':
-                            if "א" in match_next_line.group(2):
-                                new_title = f'<h{level}>{title.rstrip(".")}.</h{level}>\n'
-                            else:
-                                new_title = f'<h{level}>{title.rstrip(".")}:</h{level}>\n'
-                        elif replace_with == 'ע\"א וע\"ב':
-                            suffix = "ע\"א" if "א" in match_next_line.group(2) else "ע\"ב"
-                            new_title = f'<h{level}>{title.rstrip(".")} {suffix}</h{level}>\n'
-
-                        updated_content.append(new_title)
-
-                        modified_next_line = re.sub(pattern, '', next_line).strip()
-                        if modified_next_line != '':
-                            updated_content.append(modified_next_line + '\n')
-
-                        i += 1
+                next_line = content[i + 1].strip()
+                
+                if re.match(r'ע["\']א|ע["\']ב', next_line):
+                    changes_made = True
+                    if replace_with == "נקודה ונקודותיים":
+                        suffix = "." if "א" in next_line else ":"
                     else:
-                        updated_content.append(line)
-                else:
-                    updated_content.append(line)
-            else:
-                updated_content.append(line)
+                        suffix = " ע\"א" if "א" in next_line else " ע\"ב"
+                    
+                    updated_line = f"<h{level}>{title}{suffix}</h{level}>\n"
+                    updated_content.append(updated_line)
+                    
+                    remaining_text = re.sub(r'^ע["\']א|ע["\']ב\s*', '', next_line)
+                    if remaining_text:
+                        updated_content.append(remaining_text + "\n")
+                    i += 2
+                    continue
+            
+            updated_content.append(line)
             i += 1
 
         if changes_made:
-            with open(filename, 'w', encoding='utf-8') as file:
-                file.writelines(updated_content)
-            QMessageBox.information(self, "!מזל טוב", "ההחלפה הושלמה בהצלחה!")
+            try:
+                with open(filename, 'w', encoding='utf-8') as file:
+                    file.writelines(updated_content)
+                self.changes_made.emit()
+                QMessageBox.information(self, "הצלחה", "ההחלפות בוצעו בהצלחה!")
+            except Exception as e:
+                QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
         else:
-            QMessageBox.information(self, "!שים לב", "אין מה להחליף בקובץ זה")
+            QMessageBox.information(self, "מידע", "לא נמצאו החלפות לביצוע")
 
     def run_script(self):
-        file_path = self.file_entry.text()
-        if file_path:
-            replace_with = self.replace_option.currentText()
-            self.process_file(file_path, replace_with)
-        else:
-            QMessageBox.warning(self, "קלט לא תקין", "אנא בחר קובץ או הזן נתיב")
-  
-    # פונקציה לטעינת אייקון ממחרוזת Base64
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        
+        replace_with = self.replace_option.currentText()
+        self.process_file(self.file_path, replace_with)
+
     def load_icon_from_base64(self, base64_string):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
@@ -1314,15 +1344,12 @@ class ReplacePageBHeaders(QWidget):
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
    
-# ==========================================
-# Script 8: בדיקת שגיאות בכותרות
-# ==========================================
-
 def create_labeled_widget(label_text, widget):
+    """יוצר widget עם תווית"""
     container = QWidget()
     v_layout = QVBoxLayout()
-    v_layout.setContentsMargins(0, 0, 0, 0)  # מסיר את כל המרווחים סביב ה-layout
-    v_layout.setSpacing(2)  # מגדיר מרווח קטן בין הווידג'טים (ניתן להתאים לערך הרצוי)
+    v_layout.setContentsMargins(0, 0, 0, 0)
+    v_layout.setSpacing(2)
     label = QLabel(label_text)
     label.setStyleSheet("font-size: 18px;")
     v_layout.addWidget(label)
@@ -1330,32 +1357,32 @@ def create_labeled_widget(label_text, widget):
     container.setLayout(v_layout)
     return container
 
-# ------------------ מחלקה ראשונה: בדיקת שגיאות בכותרות ------------------ #
 class בדיקת_שגיאות_בכותרות(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.file_path = "" 
+        self.file_path = ""
         self.setWindowTitle("בדיקת שגיאות בכותרות")
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-
+        
         # תווים בתחילת וסוף הכותרת
         regex_layout = QHBoxLayout()
+        
         re_start_label = QLabel("תו/ים בתחילת הכותרת:")
         re_start_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.re_start_entry = QLineEdit()
         self.re_start_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
+        
         re_end_label = QLabel("תו/ים בסוף הכותרת:")
-
         self.re_end_entry = QLineEdit()
         self.re_end_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        
         self.gershayim_var = QCheckBox("כולל גרשיים")
-
-        # הוספת הרכיבים
+        
         regex_layout.addWidget(self.gershayim_var)
         regex_layout.addWidget(self.re_end_entry)
         regex_layout.addWidget(re_end_label)
@@ -1363,59 +1390,63 @@ class בדיקת_שגיאות_בכותרות(QWidget):
         regex_layout.addWidget(re_start_label)
         layout.addLayout(regex_layout)
 
-        # יצירת QTextEdit והגדרותיהם
+        # יצירת תיבות טקסט להצגת תוצאות
         self.unmatched_regex_text = QTextEdit()
-        self.unmatched_regex_text.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.unmatched_regex_text.setReadOnly(True)
-
         self.unmatched_tags_text = QTextEdit()
-        self.unmatched_tags_text.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.unmatched_tags_text.setReadOnly(True)
 
-        # עטיפת כל ווידג'ט במכולה עם תווית מעליו
+        # יצירת מכולות עם תוויות
         regex_container = create_labeled_widget(
-            "פירוט הכותרות שיש בהן תווים מיותרים (חוץ ממה שנכתב בתיבות הבחירה למעלה)\nאם יש רווח לפני או אחרי הכותרת, זה גם יוצג כשגיאה",
+            "פירוט הכותרות שיש בהן תווים מיותרים (חוץ ממה שנכתב בתיבות הבחירה למעלה)\n"
+            "אם יש רווח לפני או אחרי הכותרת, זה גם יוצג כשגיאה",
             self.unmatched_regex_text
         )
-        tags_container = create_labeled_widget("פירוט הכותרות שאינן לפי הסדר", self.unmatched_tags_text)
+        tags_container = create_labeled_widget(
+            "פירוט הכותרות שאינן לפי הסדר",
+            self.unmatched_tags_text
+        )
 
-        # הוספת המכולות ל־QSplitter אנכי
+        # יצירת מפריד אנכי
         v_splitter = QSplitter(Qt.Vertical)
-        v_splitter.setHandleWidth(10)  # עובי handle לפי בחירתך
+        v_splitter.setHandleWidth(10)
         v_splitter.addWidget(regex_container)
         v_splitter.addWidget(tags_container)
-
-        # הוספת ה־splitter ל-layout הראשי
         layout.addWidget(v_splitter)
 
         self.setLayout(layout)
 
     def load_file_and_process(self, file_path):
-        """
-        פונקציה זו תחליף את open_file, כך שנקבל ישירות את הנתיב מבחוץ
-        ונעבד את תוכן הקובץ בהתאם.
-        """
+        """עיבוד הקובץ והצגת התוצאות"""
         try:
             with open(file_path, "r", encoding="utf-8") as file:
                 html_content = file.read()
+            
+            re_start = self.re_start_entry.text()
+            re_end = self.re_end_entry.text()
+            gershayim = self.gershayim_var.isChecked()
+
+            unmatched_regex, unmatched_tags = self.process_html(html_content, re_start, re_end, gershayim)
+            
+            # הצגת התוצאות
+            if unmatched_regex:
+                self.unmatched_regex_text.setPlainText("\n".join(unmatched_regex))
+            else:
+                self.unmatched_regex_text.setPlainText("לא נמצאו שגיאות")
+                
+            if unmatched_tags:
+                self.unmatched_tags_text.setPlainText("\n".join(unmatched_tags))
+            else:
+                self.unmatched_tags_text.setPlainText("לא נמצאו שגיאות")
+
         except Exception as e:
-            return
-
-        re_start = self.re_start_entry.text()
-        re_end = self.re_end_entry.text()
-        gershayim = self.gershayim_var.isChecked()
-
-        unmatched_regex, unmatched_tags = self.process_html(html_content, re_start, re_end, gershayim)
-        self.unmatched_regex_text.setPlainText("\n".join(unmatched_regex))
-        self.unmatched_tags_text.setPlainText("\n".join(unmatched_tags))
+            QMessageBox.critical(None, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
 
     def process_html(self, html_content, re_start, re_end, gershayim):
-        """
-        לוגיקת העיבוד המקורית. כמו בסקריפט הראשוני, רק בלי הדיאלוגים של בחירת קובץ.
-        """
+        """עיבוד תוכן ה-HTML ובדיקת שגיאות"""
         soup = BeautifulSoup(html_content, 'html.parser')
 
-        # קומפילציה של תבנית Regex לפי קלט המשתמש
+        # יצירת תבנית regex
         if re_start and re_end:
             pattern = re.compile(f"^{re_start}.+[{re_end}]$")
         elif re_start:
@@ -1428,129 +1459,112 @@ class בדיקת_שגיאות_בכותרות(QWidget):
         unmatched_regex = []
         unmatched_tags = []
 
-        # נעבור על תגי כותרות h2 עד h6
-        for i in range(2, 7):
-            tags = soup.find_all(f"h{i}")
-
-            # בדיקה אם נמצאו תגים
-            if not tags:
-                unmatched_tags.append(f"מידע: אין בקובץ כותרות ברמה {i}")
+        # בדיקת כותרות h2-h6
+        for level in range(2, 7):
+            headers = soup.find_all(f"h{level}")
+            
+            if not headers:
+                unmatched_tags.append(f"מידע: אין בקובץ כותרות ברמה {level}")
                 continue
 
-            # עיבוד כל התגים למעט האחרון
-            for index in range(len(tags) - 1):
-                current_tag = tags[index].string or ""
-                next_tag = tags[index + 1].string or ""
-
-                # וידוא שהמחרוזות של התגים אינן ריקות
-                if not current_tag or not next_tag:
+            for i in range(len(headers) - 1):
+                curr_header = headers[i].string or ""
+                next_header = headers[i + 1].string or ""
+                
+                if not curr_header or not next_header:
                     continue
 
-                # בהנחה שהפיצול מבוצע על רווח כדי לקבל את הכותרות
-                current_heading_parts = current_tag.split()
-                next_heading_parts = next_tag.split()
+                # בדיקת תבנית
+                if not re.match(pattern, curr_header):
+                    unmatched_regex.append(curr_header)
 
-                if len(current_heading_parts) > 1:
-                    current_heading = current_heading_parts[1]
-                else:
-                    current_heading = current_tag
+                # חילוץ המספר מהכותרת
+                curr_parts = curr_header.split()
+                next_parts = next_header.split()
+                
+                curr_num = curr_parts[1] if len(curr_parts) > 1 else curr_header
+                next_num = next_parts[1] if len(next_parts) > 1 else next_header
 
-                if len(next_heading_parts) > 1:
-                    next_heading = next_heading_parts[1]
-                else:
-                    next_heading = next_tag
-
-                # בדיקה אם התג הנוכחי תואם את התבנית
-                if not re.match(pattern, current_tag):
-                    unmatched_regex.append(current_tag)
-
-                # בדיקה עבור תנאי גרשיים
+                # בדיקת גרשיים
                 if gershayim:
-                    if gematriapy.to_number(current_heading) <= 9:
-                        if "'" not in current_heading:
-                            unmatched_tags.append(current_heading)
-                    else:
-                        if '"' not in current_heading:
-                            unmatched_tags.append(current_heading)
-                else:
-                    if "'" in current_heading or '"' in current_heading:
-                        unmatched_tags.append(current_heading)
+                    if gematria.to_number(curr_num) <= 9:
+                        if "'" not in curr_num:
+                            unmatched_tags.append(curr_num)
+                    elif '"' not in curr_num:
+                        unmatched_tags.append(curr_num)
+                elif "'" in curr_num or '"' in curr_num:
+                    unmatched_tags.append(curr_num)
 
-                # בדיקה אם הכותרות הן ברצף
-                if not gematriapy.to_number(current_heading) + 1 == gematriapy.to_number(next_heading):
-                    unmatched_tags.append(f"כותרת נוכחית - {current_tag}, כותרת הבאה - {next_tag}")
+                # בדיקת רצף
+                if not gematria.to_number(curr_num) + 1 == gematria.to_number(next_num):
+                    unmatched_tags.append(f"כותרת נוכחית - {curr_header}, כותרת הבאה - {next_header}")
 
-            # עיבוד התג האחרון
-            last_tag = tags[-1].string or ""
-            if last_tag and not re.match(pattern, last_tag):
-                unmatched_regex.append(last_tag)
+            # בדיקת הכותרת האחרונה
+            if headers:
+                last_header = headers[-1].string or ""
+                if last_header and not re.match(pattern, last_header):
+                    unmatched_regex.append(last_header)
 
-            last_heading_parts = last_tag.split()
-            if len(last_heading_parts) > 1:
-                last_heading = last_heading_parts[1]
-            else:
-                last_heading = last_tag
-
-            if gershayim:
-                if gematriapy.to_number(last_heading) <= 9:
-                    if "'" not in last_heading:
-                        unmatched_tags.append(last_heading)
-                else:
-                    if '"' not in last_heading:
-                        unmatched_tags.append(last_heading)
-            else:
-                if "'" in last_heading or '"' in last_heading:
-                    unmatched_tags.append(last_heading)
+                last_num = last_header.split()[1] if len(last_header.split()) > 1 else last_header
+                if gershayim:
+                    if gematria.to_number(last_num) <= 9:
+                        if "'" not in last_num:
+                            unmatched_tags.append(last_num)
+                    elif '"' not in last_num:
+                        unmatched_tags.append(last_num)
+                elif "'" in last_num or '"' in last_num:
+                    unmatched_tags.append(last_num)
 
         return unmatched_regex, unmatched_tags
-
-# ------------------ מחלקה שנייה: בדיקת שגיאות בעיצוב (תגים וכו') ------------------ #
+    
 class בדיקת_שגיאות_בתגים(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.file_path = "" 
+        self.file_path = ""
         self.setWindowTitle("בודק שגיאות בעיצוב")
         self.init_ui()
 
     def init_ui(self):
         main_layout = QVBoxLayout()
 
-        # יצירת תיבות טקסט והגדרותיהם
+        # יצירת תיבות טקסט
         self.opening_without_closing = QTextEdit()
-        self.opening_without_closing.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.opening_without_closing.setReadOnly(True)
 
         self.closing_without_opening = QTextEdit()
-        self.closing_without_opening.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.closing_without_opening.setReadOnly(True)
 
         self.heading_errors = QTextEdit()
-        self.heading_errors.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.heading_errors.setReadOnly(True)
 
-        # עטיפת כל ווידג'ט במכולה עם תווית
-        opening_container = create_labeled_widget("תגים פותחים ללא תגים סוגרים", self.opening_without_closing)
-        closing_container = create_labeled_widget("תגים סוגרים ללא תגים פותחים", self.closing_without_opening)
-        heading_container = create_labeled_widget("טקסט שאינו חלק מכותרת, שנמצא באותה שורה עם הכותרת", self.heading_errors)
+        # יצירת מכולות עם תוויות
+        opening_container = create_labeled_widget(
+            "תגים פותחים ללא תגים סוגרים",
+            self.opening_without_closing
+        )
+        closing_container = create_labeled_widget(
+            "תגים סוגרים ללא תגים פותחים",
+            self.closing_without_opening
+        )
+        heading_container = create_labeled_widget(
+            "טקסט שאינו חלק מכותרת, שנמצא באותה שורה עם הכותרת",
+            self.heading_errors
+        )
 
-        # יצירת QSplitter אנכי
-        v_splitter_tags = QSplitter(Qt.Vertical)
-        v_splitter_tags.setHandleWidth(10)
-        v_splitter_tags.addWidget(opening_container)
-        v_splitter_tags.addWidget(closing_container)
-        v_splitter_tags.addWidget(heading_container)
+        # יצירת מפריד אנכי
+        v_splitter = QSplitter(Qt.Vertical)
+        v_splitter.setHandleWidth(10)
+        v_splitter.addWidget(opening_container)
+        v_splitter.addWidget(closing_container)
+        v_splitter.addWidget(heading_container)
 
-        # הוספת QSplitter ל-layout הראשי
-        main_layout.addWidget(v_splitter_tags)
-
-        self.setLayout(main_layout) 
+        main_layout.addWidget(v_splitter)
+        self.setLayout(main_layout)
 
     def load_file_and_check(self, file_path):
-        """
-        פונקציה זו תחליף את select_file מהסקריפט המקורי.
-        תקבל נתיב קובץ ותבצע את כל הבדיקות.
-        """
+        """בדיקת שגיאות בקובץ"""
         # ניקוי תוצאות קודמות
         self.opening_without_closing.clear()
         self.closing_without_opening.clear()
@@ -1559,242 +1573,199 @@ class בדיקת_שגיאות_בתגים(QWidget):
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
+
+            opening_without_closing_list = []
+            closing_without_opening_list = []
+            heading_errors_list = []
+
+            for line_num, line in enumerate(lines, 1):
+                # בדיקת תגים
+                tags_in_line = re.findall(r'<(/?\w+)>', line)
+                stack = []
+
+                for tag in tags_in_line:
+                    if not tag.startswith('/'):  # תג פותח
+                        stack.append(tag)
+                    else:  # תג סוגר
+                        if stack and stack[-1] == tag[1:]:
+                            stack.pop()
+                        else:
+                            closing_without_opening_list.append(
+                                f"שורה {line_num}: </{tag[1:]}> || {line.strip()}"
+                            )
+
+                # תגים שנשארו פתוחים
+                for tag in stack:
+                    opening_without_closing_list.append(
+                        f"שורה {line_num}: <{tag}> || {line.strip()}"
+                    )
+
+                # בדיקת טקסט מחוץ לכותרות
+                for tag in ["h2", "h3", "h4", "h5", "h6"]:
+                    heading_pattern = rf'<{tag}>.*?</{tag}>'
+                    match = re.search(heading_pattern, line)
+                    if match:
+                        start, end = match.span()
+                        before = line[:start].strip()
+                        after = line[end:].strip()
+                        if before or after:
+                            heading_errors_list.append(f"שורה {line_num}: {line.strip()}")
+
+            # הצגת תוצאות
+            self.opening_without_closing.setPlainText(
+                "\n".join(opening_without_closing_list) if opening_without_closing_list 
+                else "לא נמצאו שגיאות"
+            )
+            
+            self.closing_without_opening.setPlainText(
+                "\n".join(closing_without_opening_list) if closing_without_opening_list 
+                else "לא נמצאו שגיאות"
+            )
+            
+            self.heading_errors.setPlainText(
+                "\n".join(heading_errors_list) if heading_errors_list 
+                else "לא נמצאו שגיאות"
+            )
+
         except Exception as e:
-            return
+            QMessageBox.critical(None, "שגיאה", f"שגיאה בבדיקת הקובץ: {str(e)}")
 
-        open_tags = ["b", "big", "i", "small", "h2", "h3", "h4", "h5", "h6"]
-        opening_without_closing_list = []
-        closing_without_opening_list = []
-        heading_errors_list = []
 
-        for line_number, line in enumerate(lines, start=1):
-            # מציאת כל התגים הפותחים והסוגרים
-            tags_in_line = re.findall(r'<(/?\w+)>', line)
-            stack = []
-
-            for tag in tags_in_line:
-                if not tag.startswith('/'):  # תג פותח
-                    stack.append(tag)
-                else:  # תג סוגר
-                    if stack and stack[-1] == tag[1:]:  # תג תואם במחסנית
-                        stack.pop()
-                    else:  # תג סוגר בלי פתיחה תואמת
-                        closing_without_opening_list.append(
-                            f"שורה {line_number}: </{tag[1:]}> || {line.strip()}"
-                        )
-
-            # לאחר מעבר על כל התגים בשורה, כל מה שנשאר במחסנית הוא תגים פותחים ללא סגירה
-            for unclosed_tag in stack:
-                opening_without_closing_list.append(
-                    f"שורה {line_number}: <{unclosed_tag}> || {line.strip()}"
-                )
-
-            # בדיקה לכותרת המכילה טקסט נוסף
-            for tag in ["h2", "h3", "h4", "h5", "h6"]:
-                heading_pattern = rf'<{tag}>.*?</{tag}>'
-                heading_match = re.search(heading_pattern, line)
-                if heading_match:
-                    start, end = heading_match.span()
-                    before = line[:start].strip()
-                    after = line[end:].strip()
-                    if before or after:
-                        heading_errors_list.append(f"שורה {line_number}: {line.strip()}")
-
-        # הצגת תוצאות
-        if opening_without_closing_list:
-            self.opening_without_closing.setPlainText("\n".join(opening_without_closing_list))
-        else:
-            self.opening_without_closing.setPlainText("לא נמצאו שגיאות")
-
-        if closing_without_opening_list:
-            self.closing_without_opening.setPlainText("\n".join(closing_without_opening_list))
-        else:
-            self.closing_without_opening.setPlainText("לא נמצאו שגיאות")
-
-        if heading_errors_list:
-            self.heading_errors.setPlainText("\n".join(heading_errors_list))
-        else:
-            self.heading_errors.setPlainText("לא נמצאו שגיאות")
-
-# ------------------ חלון משולב שמאחד את שתי המחלקות ------------------ #
 class CheckHeadingErrorsOriginal(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
+        self.file_path = ""
         self.setWindowTitle("בודק כותרות + בודק תגים ביחד")
         self.setWindowIcon(self.get_app_icon())
+        self.resize(1250, 700)
 
-        # שני ה־Widgets שלנו
+        # יצירת הווידג'טים המשניים
         self.check_headings_widget = בדיקת_שגיאות_בכותרות()
         self.html_tag_checker_widget = בדיקת_שגיאות_בתגים()
-        self.check_headings_widget.resize(800, 400)
-        self.html_tag_checker_widget.resize(1200, 900)
         
-        # תיבות למעלה: נתיב קובץ וכפתור Browse
-        top_layout = QHBoxLayout()
-        self.file_path_label = QLabel("נתיב קובץ:")
-        self.file_path_label.setStyleSheet("font-size: 18px;")
+        self.init_ui()
 
-        self.file_path_edit = QLineEdit()
-        self.file_path_edit.setReadOnly(False)
-        self.file_path_edit.returnPressed.connect(self.run_from_line_edit)
+    def init_ui(self):
+        layout = QVBoxLayout()
 
-        self.browse_button = QPushButton("בחר קובץ")
-        self.browse_button.setStyleSheet("font-size: 18px;")
-        self.browse_button.setFixedHeight(40)
-        self.browse_button.setFixedWidth(280)
-        self.browse_button.clicked.connect(self.browse_file)
-
-        top_layout.addWidget(self.browse_button)
-        top_layout.addWidget(self.file_path_edit)
-        top_layout.addWidget(self.file_path_label)
-
-        # הפרדה אופקית (splitter) בין שני הרכיבים
+        # יצירת מפריד אופקי
         splitter = QSplitter(Qt.Horizontal)
-        splitter.setStyleSheet("QSplitter::handle { background-color: gray; }")
-        splitter.setHandleWidth(5)               # מגדיר רוחב לפס הגרירה כדי שיהיה ברור
         splitter.setStyleSheet("""
             QSplitter::handle:horizontal {
                 width: 5px;
-                margin-left: 1.5px;
-                margin-right: 1.5px;
+                margin: 1.5px;
                 background: gray;
             }
         """)
         
-        splitter.setChildrenCollapsible(False)   # מונע מקיפול אוטומטי של אחד מהווידג'טים
-        self.html_tag_checker_widget.setMinimumWidth(10)  # מגדיר רוחב מינימלי
-        self.check_headings_widget.setMinimumWidth(10)      # מגדיר רוחב מינימלי        
+        splitter.setChildrenCollapsible(False)
+        
+        # הגדרת מינימום רוחב
+        self.html_tag_checker_widget.setMinimumWidth(10)
+        self.check_headings_widget.setMinimumWidth(10)
 
-        # עדכון בתוך בניית ה־ html_container:
-        self.html_container_layout = QVBoxLayout()
+        # הוספת הווידג'טים למיכל
+        html_container = QWidget()
+        self.html_container_layout = QVBoxLayout(html_container)
         self.html_container_layout.setContentsMargins(0, 0, 0, 0)
         self.html_container_layout.addWidget(self.html_tag_checker_widget)
-        # אל נוסיף כאן את ה־ pic_count_label
-        html_container = QWidget()
-        html_container.setLayout(self.html_container_layout)
-        splitter.addWidget(html_container)
 
-        html_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.check_headings_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        html_container.setMaximumHeight(16777215)
-        self.check_headings_widget.setMaximumHeight(16777215)
-        self.check_headings_widget.resize(1000, 400)
-        html_container.resize(800, 400)
-
+        # תווית לציורים בספר
         self.pic_count_label = QLabel("")
         self.pic_count_label.setStyleSheet("font-size: 18px; color: blue;")
-
+        self.pic_count_label.setVisible(False)
+        
+        splitter.addWidget(html_container)
         splitter.addWidget(self.check_headings_widget)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
-        # בניית ה־layout הכללי
-        main_layout = QVBoxLayout()
-        top_container = QWidget()
-        top_container.setLayout(top_layout)
-        top_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        main_layout.addWidget(top_container)
+        layout.addWidget(splitter)
+        self.setLayout(layout)
 
-        main_layout.addWidget(splitter, 1)
-
-        self.setLayout(main_layout)
-        self.resize(1250, 700)  # גודל התחלתי
+    def set_file_path(self, file_path):
+        """קבלת נתיב הקובץ ועיבודו"""
+        self.file_path = file_path
+        self.process_file(file_path)
 
     def process_file(self, file_path):
-        if not file_path:
-            QMessageBox.critical(self, "קלט לא תקין", "לא נבחר קובץ!")
-            return
-        # בדיקת סוג הקובץ לפי סיומת
-        if not file_path.lower().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return      
-
-        # עדכון הנתיב בתיבת הטקסט (אם לא נעשה כבר)
-        self.file_path_edit.setText(file_path)
-
-        # הפעלת הבדיקות בשני ה־widgets
-        self.check_headings_widget.load_file_and_process(file_path)
-        self.html_tag_checker_widget.load_file_and_check(file_path)
-
-        # קריאת תוכן הקובץ עם טיפול בשגיאות
+        """עיבוד הקובץ ובדיקת שגיאות"""
         try:
+            # הפעלת בדיקות בשני הווידג'טים
+            self.check_headings_widget.load_file_and_process(file_path)
+            self.html_tag_checker_widget.load_file_and_check(file_path)
+
+            # בדיקת ציורים בספר
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
-        except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
-        except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
+                count = content.count("ציור בספר")
+                
+                if count > 0:
+                    text = (f'שים לב! יש בספר {count} ציורים.\n'
+                           'חפש בתוך הספר את המילים "ציור בספר",\n'
+                           'הורד את הספר מהיברובוקס, עשה צילום מסך לתמונה,\n'
+                           'והמר אותה לטקסט ע"י תוכנה מספר 10')
+                    self.pic_count_label.setText(text)
+                    self.pic_count_label.setVisible(True)
+                    if self.pic_count_label.parent() is None:
+                        self.html_container_layout.addWidget(self.pic_count_label)
+                else:
+                    self.pic_count_label.setVisible(False)
+
         except Exception as e:
-            QMessageBox.critical(self, "קלט לא תקין", f"שגיאה בפתיחת קובץ: {e}")
-            return
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
 
-        # בדיקה עבור המחרוזת "ציור בספר"
-        count = content.count("ציור בספר")
-        if count > 0:
-            text = (f'שים לב! יש בספר {count} ציורים.\n'
-                    'חפש בתוך הספר את המילים "ציור בספר",\n'
-                    'הורד את הספר מהיברובוקס, עשה צילום מסך לתמונה,\n'
-                    'והמר אותה לטקסט ע"י תוכנה מספר 10')
-            self.pic_count_label.setText(text)
-            if self.pic_count_label.parent() is None:
-                self.html_container_layout.addWidget(self.pic_count_label)
-            self.pic_count_label.setVisible(True)
-        else:
-            self.pic_count_label.setText("")
-            if self.pic_count_label.parent() is not None:
-                self.html_container_layout.removeWidget(self.pic_count_label)
-                self.pic_count_label.setParent(None)
-
-    def set_file_path(self, path):
-        """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
-
-    def run_from_line_edit(self):
-        file_path = self.file_path_edit.text().strip()
-        if file_path:
-            self.process_file(file_path)
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def get_app_icon(self):
+        """טעינת אייקון מקידוד Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(icon_base64))
-        return QIcon(pixmap)
-   
+        return QIcon(pixmap)   
 # ==========================================
 # Script 9: בדיקת שגיאות בכותרות מותאם לספרים על השס
 # ==========================================
 
-# ------------------ מחלקה ראשונה: בדיקת שגיאות בכותרות ------------------ #
+def create_labeled_widget(label_text, widget):
+    """יוצר widget עם תווית"""
+    container = QWidget()
+    v_layout = QVBoxLayout()
+    v_layout.setContentsMargins(0, 0, 0, 0)
+    v_layout.setSpacing(2)
+    label = QLabel(label_text)
+    label.setStyleSheet("font-size: 18px;")
+    v_layout.addWidget(label)
+    v_layout.addWidget(widget)
+    container.setLayout(v_layout)
+    return container
+
 class בדיקת_שגיאות_בכותרות_לשס(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.file_path = "" 
-        self.setWindowTitle("בדיקת שגיאות בכותרות")
+        self.file_path = ""
+        self.setWindowTitle("בדיקת שגיאות בכותרות לש\"ס")
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-
+        
         # תווים בתחילת וסוף הכותרת
         regex_layout = QHBoxLayout()
+        
         re_start_label = QLabel("תו/ים בתחילת הכותרת:")
         re_start_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.re_start_entry = QLineEdit()
         self.re_start_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-
+        
         re_end_label = QLabel("תו/ים בסוף הכותרת:")
-
         self.re_end_entry = QLineEdit()
         self.re_end_entry.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.re_end_entry.setText('. :')
+        
         self.gershayim_var = QCheckBox("כולל גרשיים")
-
-        # הוספת הרכיבים
+        
         regex_layout.addWidget(self.gershayim_var)
         regex_layout.addWidget(self.re_end_entry)
         regex_layout.addWidget(re_end_label)
@@ -1802,59 +1773,64 @@ class בדיקת_שגיאות_בכותרות_לשס(QWidget):
         regex_layout.addWidget(re_start_label)
         layout.addLayout(regex_layout)
 
-        # יצירת QTextEdit והגדרותיהם
+        # יצירת תיבות טקסט להצגת תוצאות
         self.unmatched_regex_text = QTextEdit()
-        self.unmatched_regex_text.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.unmatched_regex_text.setReadOnly(True)
-
         self.unmatched_tags_text = QTextEdit()
-        self.unmatched_tags_text.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.unmatched_tags_text.setReadOnly(True)
 
-        # עטיפת כל ווידג'ט במכולה עם תווית מעליו
+        # יצירת מכולות עם תוויות
         regex_container = create_labeled_widget(
-            "פירוט הכותרות שיש בהן תווים מיותרים (חוץ ממה שנכתב בתיבות הבחירה למעלה)\nאם יש רווח לפני או אחרי הכותרת, זה גם יוצג כשגיאה",
+            "פירוט הכותרות שיש בהן תווים מיותרים (חוץ ממה שנכתב בתיבות הבחירה למעלה)\n"
+            "אם יש רווח לפני או אחרי הכותרת, זה גם יוצג כשגיאה",
             self.unmatched_regex_text
         )
-        tags_container = create_labeled_widget("פירוט הכותרות שאינן לפי הסדר\nהתוכנה מדלגת בבדיקה בכל פעם על כותרת אחת, בגלל הכותרות הכפולות לעמוד ב", self.unmatched_tags_text)
+        tags_container = create_labeled_widget(
+            "פירוט הכותרות שאינן לפי הסדר\n"
+            "התוכנה מדלגת בבדיקה בכל פעם על כותרת אחת, בגלל הכותרות הכפולות לעמוד ב",
+            self.unmatched_tags_text
+        )
 
-        # הוספת המכולות ל־QSplitter אנכי
+        # יצירת מפריד אנכי
         v_splitter = QSplitter(Qt.Vertical)
-        v_splitter.setHandleWidth(10)  # עובי handle לפי בחירתך
+        v_splitter.setHandleWidth(10)
         v_splitter.addWidget(regex_container)
         v_splitter.addWidget(tags_container)
-
-        # הוספת ה־splitter ל-layout הראשי
         layout.addWidget(v_splitter)
 
         self.setLayout(layout)
 
     def load_file_and_process(self, file_path):
-        """
-        פונקציה זו תחליף את open_file, כך שנקבל ישירות את הנתיב מבחוץ
-        ונעבד את תוכן הקובץ בהתאם.
-        """
+        """עיבוד הקובץ והצגת התוצאות"""
         try:
             with open(file_path, "r", encoding="utf-8") as file:
                 html_content = file.read()
+            
+            re_start = self.re_start_entry.text()
+            re_end = self.re_end_entry.text()
+            gershayim = self.gershayim_var.isChecked()
+
+            unmatched_regex, unmatched_tags = self.process_html(html_content, re_start, re_end, gershayim)
+            
+            # הצגת התוצאות
+            if unmatched_regex:
+                self.unmatched_regex_text.setPlainText("\n".join(unmatched_regex))
+            else:
+                self.unmatched_regex_text.setPlainText("לא נמצאו שגיאות")
+                
+            if unmatched_tags:
+                self.unmatched_tags_text.setPlainText("\n".join(unmatched_tags))
+            else:
+                self.unmatched_tags_text.setPlainText("לא נמצאו שגיאות")
+
         except Exception as e:
-            return
-
-        re_start = self.re_start_entry.text()
-        re_end = self.re_end_entry.text()
-        gershayim = self.gershayim_var.isChecked()
-
-        unmatched_regex, unmatched_tags = self.process_html(html_content, re_start, re_end, gershayim)
-        self.unmatched_regex_text.setPlainText("\n".join(unmatched_regex))
-        self.unmatched_tags_text.setPlainText("\n".join(unmatched_tags))
+            QMessageBox.critical(None, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
 
     def process_html(self, html_content, re_start, re_end, gershayim):
-        """
-        לוגיקת העיבוד המקורית. כמו בסקריפט הראשוני, רק בלי הדיאלוגים של בחירת קובץ.
-        """
+        """עיבוד תוכן ה-HTML ובדיקת שגיאות"""
         soup = BeautifulSoup(html_content, 'html.parser')
 
-        # קומפילציה של תבנית Regex לפי קלט המשתמש
+        # יצירת תבנית regex
         if re_start and re_end:
             pattern = re.compile(f"^{re_start}.+[{re_end}]$")
         elif re_start:
@@ -1867,132 +1843,114 @@ class בדיקת_שגיאות_בכותרות_לשס(QWidget):
         unmatched_regex = []
         unmatched_tags = []
 
-        # נעבור על תגי כותרות h2 עד h6
-        for i in range(2, 7):
-            tags = soup.find_all(f"h{i}")
-
-            # בדיקה אם נמצאו תגים
-            if not tags:
-                unmatched_tags.append(f"מידע: אין בקובץ כותרות ברמה {i}")
+        # בדיקת כותרות h2-h6
+        for level in range(2, 7):
+            headers = soup.find_all(f"h{level}")
+            
+            if not headers:
+                unmatched_tags.append(f"מידע: אין בקובץ כותרות ברמה {level}")
                 continue
 
-            # עיבוד כל התגים למעט האחרון
-            for index in range(len(tags) - 2):
-                current_tag = tags[index].string or ""
-                next_tag = tags[index + 2].string or ""
-
-                # וידוא שהמחרוזות של התגים אינן ריקות
-                if not current_tag or not next_tag:
+            # עיבוד כל הכותרות למעט שתי האחרונות
+            for i in range(len(headers) - 2):
+                curr_header = headers[i].string or ""
+                next_header = headers[i + 2].string or ""  # דילוג על כותרת אחת
+                
+                if not curr_header or not next_header:
                     continue
 
-                # בהנחה שהפיצול מבוצע על רווח כדי לקבל את הכותרות
-                current_heading_parts = current_tag.split()
-                next_heading_parts = next_tag.split()
+                # בדיקת תבנית
+                if not re.match(pattern, curr_header):
+                    unmatched_regex.append(curr_header)
 
-                if len(current_heading_parts) > 1:
-                    current_heading = current_heading_parts[1]
-                else:
-                    current_heading = current_tag
+                # חילוץ המספר מהכותרת
+                curr_parts = curr_header.split()
+                next_parts = next_header.split()
+                
+                curr_num = curr_parts[1] if len(curr_parts) > 1 else curr_header
+                next_num = next_parts[1] if len(next_parts) > 1 else next_header
 
-                if len(next_heading_parts) > 1:
-                    next_heading = next_heading_parts[1]
-                else:
-                    next_heading = next_tag
-
-                # בדיקה אם התג הנוכחי תואם את התבנית
-                if not re.match(pattern, current_tag):
-                    unmatched_regex.append(current_tag)
-
-                # בדיקה עבור תנאי גרשיים
+                # בדיקת גרשיים
                 if gershayim:
-                    if gematriapy.to_number(current_heading) <= 9:
-                        if "'" not in current_heading:
-                            unmatched_tags.append(current_heading)
-                    else:
-                        if '"' not in current_heading:
-                            unmatched_tags.append(current_heading)
-                else:
-                    if "'" in current_heading or '"' in current_heading:
-                        unmatched_tags.append(current_heading)
+                    if gematria.to_number(curr_num) <= 9:
+                        if "'" not in curr_num:
+                            unmatched_tags.append(curr_num)
+                    elif '"' not in curr_num:
+                        unmatched_tags.append(curr_num)
+                elif "'" in curr_num or '"' in curr_num:
+                    unmatched_tags.append(curr_num)
 
-                # בדיקה אם הכותרות הן ברצף
-                if not gematriapy.to_number(current_heading) + 1 == gematriapy.to_number(next_heading):
-                    unmatched_tags.append(f"כותרת נוכחית - {current_tag}, כותרת הבאה - {next_tag}")
+                # בדיקת רצף (עם דילוג על כותרת אחת)
+                if not gematria.to_number(curr_num) + 1 == gematria.to_number(next_num):
+                    unmatched_tags.append(f"כותרת נוכחית - {curr_header}, כותרת הבאה - {next_header}")
 
-            # עיבוד התג האחרון
-            last_tages = (tags[-2].string or "", tags[-1].string or "")
-            for last_tag in last_tages:
-                if last_tag and not re.match(pattern, last_tag):
-                    unmatched_regex.append(last_tag)
-
-            last_heading_parts = last_tag.split()
-            if len(last_heading_parts) > 1:
-                last_heading = last_heading_parts[1]
-            else:
-                last_heading = last_tag
-
-            if gershayim:
-                if gematriapy.to_number(last_heading) <= 9:
-                    if "'" not in last_heading:
-                        unmatched_tags.append(last_heading)
-                else:
-                    if '"' not in last_heading:
-                        unmatched_tags.append(last_heading)
-            else:
-                if "'" in last_heading or '"' in last_heading:
-                    unmatched_tags.append(last_heading)
+            # בדיקת שתי הכותרות האחרונות
+            if len(headers) >= 2:
+                for last_header in [headers[-2].string or "", headers[-1].string or ""]:
+                    if last_header and not re.match(pattern, last_header):
+                        unmatched_regex.append(last_header)
+                    
+                    parts = last_header.split()
+                    last_num = parts[1] if len(parts) > 1 else last_header
+                    
+                    if gershayim:
+                        if gematria.to_number(last_num) <= 9:
+                            if "'" not in last_num:
+                                unmatched_tags.append(last_num)
+                        elif '"' not in last_num:
+                            unmatched_tags.append(last_num)
+                    elif "'" in last_num or '"' in last_num:
+                        unmatched_tags.append(last_num)
 
         return unmatched_regex, unmatched_tags
-
-# ------------------ מחלקה שנייה: בדיקת שגיאות בעיצוב (תגים וכו') ------------------ #
 class בדיקת_שגיאות_בתגים_לשס(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.file_path = "" 
-        self.setWindowTitle("בודק שגיאות בעיצוב")
+        self.file_path = ""
+        self.setWindowTitle("בודק שגיאות בעיצוב לש\"ס")
         self.init_ui()
 
     def init_ui(self):
         main_layout = QVBoxLayout()
 
-
-        # יצירת תיבות טקסט והגדרותיהם
+        # יצירת תיבות טקסט
         self.opening_without_closing = QTextEdit()
-        self.opening_without_closing.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.opening_without_closing.setReadOnly(True)
 
         self.closing_without_opening = QTextEdit()
-        self.closing_without_opening.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.closing_without_opening.setReadOnly(True)
 
         self.heading_errors = QTextEdit()
-        self.heading_errors.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.heading_errors.setReadOnly(True)
 
-        # עטיפת כל ווידג'ט במכולה עם תווית
-        opening_container = create_labeled_widget("תגים פותחים ללא תגים סוגרים", self.opening_without_closing)
-        closing_container = create_labeled_widget("תגים סוגרים ללא תגים פותחים", self.closing_without_opening)
-        heading_container = create_labeled_widget("טקסט שאינו חלק מכותרת, שנמצא באותה שורה עם הכותרת", self.heading_errors)
+        # יצירת מכולות עם תוויות
+        opening_container = create_labeled_widget(
+            "תגים פותחים ללא תגים סוגרים",
+            self.opening_without_closing
+        )
+        closing_container = create_labeled_widget(
+            "תגים סוגרים ללא תגים פותחים",
+            self.closing_without_opening
+        )
+        heading_container = create_labeled_widget(
+            "טקסט שאינו חלק מכותרת, שנמצא באותה שורה עם הכותרת",
+            self.heading_errors
+        )
 
-        # יצירת QSplitter אנכי
-        v_splitter_tags = QSplitter(Qt.Vertical)
-        v_splitter_tags.setHandleWidth(10)
-        v_splitter_tags.addWidget(opening_container)
-        v_splitter_tags.addWidget(closing_container)
-        v_splitter_tags.addWidget(heading_container)
+        # יצירת מפריד אנכי
+        v_splitter = QSplitter(Qt.Vertical)
+        v_splitter.setHandleWidth(10)
+        v_splitter.addWidget(opening_container)
+        v_splitter.addWidget(closing_container)
+        v_splitter.addWidget(heading_container)
 
-        # הוספת QSplitter ל-layout הראשי
-        main_layout.addWidget(v_splitter_tags)
-
+        main_layout.addWidget(v_splitter)
         self.setLayout(main_layout)
-        
 
     def load_file_and_check(self, file_path):
-        """
-        פונקציה זו תחליף את select_file מהסקריפט המקורי.
-        תקבל נתיב קובץ ותבצע את כל הבדיקות.
-        """
+        """בדיקת שגיאות בקובץ"""
         # ניקוי תוצאות קודמות
         self.opening_without_closing.clear()
         self.closing_without_opening.clear()
@@ -2001,206 +1959,155 @@ class בדיקת_שגיאות_בתגים_לשס(QWidget):
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 lines = file.readlines()
+
+            opening_without_closing_list = []
+            closing_without_opening_list = []
+            heading_errors_list = []
+
+            for line_num, line in enumerate(lines, 1):
+                # בדיקת תגים
+                tags_in_line = re.findall(r'<(/?\w+)>', line)
+                stack = []
+
+                for tag in tags_in_line:
+                    if not tag.startswith('/'):  # תג פותח
+                        stack.append(tag)
+                    else:  # תג סוגר
+                        if stack and stack[-1] == tag[1:]:
+                            stack.pop()
+                        else:
+                            closing_without_opening_list.append(
+                                f"שורה {line_num}: </{tag[1:]}> || {line.strip()}"
+                            )
+
+                # תגים שנשארו פתוחים
+                for tag in stack:
+                    opening_without_closing_list.append(
+                        f"שורה {line_num}: <{tag}> || {line.strip()}"
+                    )
+
+                # בדיקת טקסט מחוץ לכותרות
+                for tag in ["h2", "h3", "h4", "h5", "h6"]:
+                    heading_pattern = rf'<{tag}>.*?</{tag}>'
+                    match = re.search(heading_pattern, line)
+                    if match:
+                        start, end = match.span()
+                        before = line[:start].strip()
+                        after = line[end:].strip()
+                        if before or after:
+                            heading_errors_list.append(f"שורה {line_num}: {line.strip()}")
+
+            # הצגת תוצאות
+            self.opening_without_closing.setPlainText(
+                "\n".join(opening_without_closing_list) if opening_without_closing_list 
+                else "לא נמצאו שגיאות"
+            )
+            
+            self.closing_without_opening.setPlainText(
+                "\n".join(closing_without_opening_list) if closing_without_opening_list 
+                else "לא נמצאו שגיאות"
+            )
+            
+            self.heading_errors.setPlainText(
+                "\n".join(heading_errors_list) if heading_errors_list 
+                else "לא נמצאו שגיאות"
+            )
+
         except Exception as e:
-            return
+            QMessageBox.critical(None, "שגיאה", f"שגיאה בבדיקת הקובץ: {str(e)}")
 
-        open_tags = ["b", "big", "i", "small", "h2", "h3", "h4", "h5", "h6"]
-        opening_without_closing_list = []
-        closing_without_opening_list = []
-        heading_errors_list = []
 
-        for line_number, line in enumerate(lines, start=1):
-            # מציאת כל התגים הפותחים והסוגרים
-            tags_in_line = re.findall(r'<(/?\w+)>', line)
-            stack = []
-
-            for tag in tags_in_line:
-                if not tag.startswith('/'):  # תג פותח
-                    stack.append(tag)
-                else:  # תג סוגר
-                    if stack and stack[-1] == tag[1:]:  # תג תואם במחסנית
-                        stack.pop()
-                    else:  # תג סוגר בלי פתיחה תואמת
-                        closing_without_opening_list.append(
-                            f"שורה {line_number}: </{tag[1:]}> || {line.strip()}"
-                        )
-
-            # לאחר מעבר על כל התגים בשורה, כל מה שנשאר במחסנית הוא תגים פותחים ללא סגירה
-            for unclosed_tag in stack:
-                opening_without_closing_list.append(
-                    f"שורה {line_number}: <{unclosed_tag}> || {line.strip()}"
-                )
-
-            # בדיקה לכותרת המכילה טקסט נוסף
-            for tag in ["h2", "h3", "h4", "h5", "h6"]:
-                heading_pattern = rf'<{tag}>.*?</{tag}>'
-                heading_match = re.search(heading_pattern, line)
-                if heading_match:
-                    start, end = heading_match.span()
-                    before = line[:start].strip()
-                    after = line[end:].strip()
-                    if before or after:
-                        heading_errors_list.append(f"שורה {line_number}: {line.strip()}")
-
-        # הצגת תוצאות
-        if opening_without_closing_list:
-            self.opening_without_closing.setPlainText("\n".join(opening_without_closing_list))
-        else:
-            self.opening_without_closing.setPlainText("לא נמצאו שגיאות")
-
-        if closing_without_opening_list:
-            self.closing_without_opening.setPlainText("\n".join(closing_without_opening_list))
-        else:
-            self.closing_without_opening.setPlainText("לא נמצאו שגיאות")
-
-        if heading_errors_list:
-            self.heading_errors.setPlainText("\n".join(heading_errors_list))
-        else:
-            self.heading_errors.setPlainText("לא נמצאו שגיאות")
-
-# ------------------ חלון משולב שמאחד את שתי המחלקות ------------------ #
 class CheckHeadingErrorsCustom(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+    
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
-        self.setWindowTitle("בודק כותרות + בודק תגים ביחד")
+        self.file_path = ""
+        self.setWindowTitle("בודק כותרות + בודק תגים לש\"ס")
         self.setWindowIcon(self.get_app_icon())
+        self.resize(1250, 700)
 
-        # שני ה־Widgets שלנו
+        # יצירת הווידג'טים המשניים
         self.check_headings_widget = בדיקת_שגיאות_בכותרות_לשס()
         self.html_tag_checker_widget = בדיקת_שגיאות_בתגים_לשס()
-        self.check_headings_widget.resize(800, 400)
-        self.html_tag_checker_widget.resize(1200, 900)
         
-        # תיבות למעלה: נתיב קובץ וכפתור Browse
-        top_layout = QHBoxLayout()
-        self.file_path_label = QLabel("נתיב קובץ:")
-        self.file_path_label.setStyleSheet("font-size: 18px;")
+        self.init_ui()
 
-        self.file_path_edit = QLineEdit()
-        self.file_path_edit.setReadOnly(False)
-        self.file_path_edit.returnPressed.connect(self.run_from_line_edit)
+    def init_ui(self):
+        layout = QVBoxLayout()
 
-        self.browse_button = QPushButton("בחר קובץ")
-        self.browse_button.setStyleSheet("font-size: 18px;")
-        self.browse_button.setFixedHeight(40)
-        self.browse_button.setFixedWidth(280)
-        self.browse_button.clicked.connect(self.browse_file)
-
-        top_layout.addWidget(self.browse_button)
-        top_layout.addWidget(self.file_path_edit)
-        top_layout.addWidget(self.file_path_label)
-
-        # הפרדה אופקית (splitter) בין שני הרכיבים
+        # יצירת מפריד אופקי
         splitter = QSplitter(Qt.Horizontal)
-        splitter.setStyleSheet("QSplitter::handle { background-color: gray; }")
-        splitter.setHandleWidth(5)               # מגדיר רוחב לפס הגרירה כדי שיהיה ברור
         splitter.setStyleSheet("""
             QSplitter::handle:horizontal {
                 width: 5px;
-                margin-left: 1.5px;
-                margin-right: 1.5px;
+                margin: 1.5px;
                 background: gray;
             }
         """)
         
-        splitter.setChildrenCollapsible(False)   # מונע מקיפול אוטומטי של אחד מהווידג'טים
-        self.html_tag_checker_widget.setMinimumWidth(10)  # מגדיר רוחב מינימלי
-        self.check_headings_widget.setMinimumWidth(10)      # מגדיר רוחב מינימלי        
+        splitter.setChildrenCollapsible(False)
+        
+        # הגדרת מינימום רוחב
+        self.html_tag_checker_widget.setMinimumWidth(10)
+        self.check_headings_widget.setMinimumWidth(10)
 
-        # עדכון בתוך בניית ה־ html_container:
-        self.html_container_layout = QVBoxLayout()
+        # הוספת הווידג'טים למיכל
+        html_container = QWidget()
+        self.html_container_layout = QVBoxLayout(html_container)
         self.html_container_layout.setContentsMargins(0, 0, 0, 0)
         self.html_container_layout.addWidget(self.html_tag_checker_widget)
-        # אל נוסיף כאן את ה־ pic_count_label
-        html_container = QWidget()
-        html_container.setLayout(self.html_container_layout)
-        splitter.addWidget(html_container)
 
-        html_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.check_headings_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        html_container.setMaximumHeight(16777215)
-        self.check_headings_widget.setMaximumHeight(16777215)
-        self.check_headings_widget.resize(1000, 400)
-        html_container.resize(800, 400)
-
+        # תווית לציורים בספר
         self.pic_count_label = QLabel("")
         self.pic_count_label.setStyleSheet("font-size: 18px; color: blue;")
-
+        self.pic_count_label.setVisible(False)
+        
+        splitter.addWidget(html_container)
         splitter.addWidget(self.check_headings_widget)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
 
-        # בניית ה־layout הכללי
-        main_layout = QVBoxLayout()
-        top_container = QWidget()
-        top_container.setLayout(top_layout)
-        top_container.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        main_layout.addWidget(top_container)
+        layout.addWidget(splitter)
+        self.setLayout(layout)
 
-        main_layout.addWidget(splitter, 1)
+    def set_file_path(self, file_path):
+        """קבלת נתיב הקובץ ועיבודו"""
+        self.file_path = file_path
+        self.process_file(file_path)
 
-        self.setLayout(main_layout)
-        self.resize(1250, 700)  # גודל התחלתי
-
-    def set_file_path(self, path):
-        """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path    
-
-        # עדכון הנתיב בתיבת הטקסט (אם לא נעשה כבר)
-        self.file_path_edit.setText(file_path)
-
-        # הפעלת הבדיקות בשני ה־widgets
-        self.check_headings_widget.load_file_and_process(file_path)
-        self.html_tag_checker_widget.load_file_and_check(file_path)
-
-        # קריאת תוכן הקובץ עם טיפול בשגיאות
+    def process_file(self, file_path):
+        """עיבוד הקובץ ובדיקת שגיאות"""
         try:
+            # הפעלת בדיקות בשני הווידג'טים
+            self.check_headings_widget.load_file_and_process(file_path)
+            self.html_tag_checker_widget.load_file_and_check(file_path)
+
+            # בדיקת ציורים בספר
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
-        except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
-        except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
+                count = content.count("ציור בספר")
+                
+                if count > 0:
+                    text = (f'שים לב! יש בספר {count} ציורים.\n'
+                           'חפש בתוך הספר את המילים "ציור בספר",\n'
+                           'הורד את הספר מהיברובוקס, עשה צילום מסך לתמונה,\n'
+                           'והמר אותה לטקסט ע"י תוכנה מספר 10')
+                    self.pic_count_label.setText(text)
+                    self.pic_count_label.setVisible(True)
+                    if self.pic_count_label.parent() is None:
+                        self.html_container_layout.addWidget(self.pic_count_label)
+                else:
+                    self.pic_count_label.setVisible(False)
+
         except Exception as e:
-            QMessageBox.critical(self, "קלט לא תקין", f"שגיאה בפתיחת קובץ: {e}")
-            return
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
 
-        # בדיקה עבור המחרוזת "ציור בספר"
-        count = content.count("ציור בספר")
-        if count > 0:
-            text = (f'שים לב! יש בספר {count} ציורים.\n'
-                    'חפש בתוך הספר את המילים "ציור בספר",\n'
-                    'הורד את הספר מהיברובוקס, עשה צילום מסך לתמונה,\n'
-                    'והמר אותה לטקסט ע"י תוכנה מספר 10')
-            self.pic_count_label.setText(text)
-            if self.pic_count_label.parent() is None:
-                self.html_container_layout.addWidget(self.pic_count_label)
-            self.pic_count_label.setVisible(True)
-        else:
-            self.pic_count_label.setText("")
-            if self.pic_count_label.parent() is not None:
-                self.html_container_layout.removeWidget(self.pic_count_label)
-                self.pic_count_label.setParent(None)
-
-    def set_file_path(self, path):
-        """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
-
-    def run_from_line_edit(self):
-        file_path = self.file_path_edit.text().strip()
-        if file_path:
-            self.process_file(file_path)
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def get_app_icon(self):
+        """טעינת אייקון מקידוד Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(icon_base64))
-        return QIcon(pixmap)
-
+        return QIcon(pixmap)    
 # ==========================================
 # Script 10: המרת תמונה לטקסט
 # ==========================================
@@ -2430,41 +2337,36 @@ class ImageToHtmlApp(QtWidgets.QWidget):
 # ==========================================
 
 class TextCleanerApp(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
+
     def __init__(self):
         super().__init__()
-        self.initUI()
-        self.file_path = "" 
+        self.file_path = ""
+        self.originalText = ""
+        self.setWindowTitle("תיקון שגיאות נפוצות")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.setLayoutDirection(Qt.RightToLeft)
+        self.resize(500, 400)
+        self.initUI()
 
     def initUI(self):
         layout = QVBoxLayout()
         
-        filePathLayout = QHBoxLayout()
-        self.filePath = QLineEdit()
-        fileLabel = QLabel("נתיב קובץ:")
-        filePathLayout.addWidget(fileLabel)
-        filePathLayout.addWidget(self.filePath)
-
-        layout.addLayout(filePathLayout)
-        
-        self.loadBtn = QPushButton("טען קובץ")
-        self.loadBtn.clicked.connect(self.loadFile)
-        layout.addWidget(self.loadBtn)
-        
+        # כפתורי בחירת הכל/ביטול הכל
         buttonLayout = QHBoxLayout()
-        
         self.selectAllBtn = QPushButton("בחר הכל")
+        self.selectAllBtn.setStyleSheet("font-size: 14px;")
         self.selectAllBtn.clicked.connect(self.selectAll)
-        buttonLayout.addWidget(self.selectAllBtn)
         
         self.deselectAllBtn = QPushButton("בטל הכל")
+        self.deselectAllBtn.setStyleSheet("font-size: 14px;")
         self.deselectAllBtn.clicked.connect(self.deselectAll)
-        buttonLayout.addWidget(self.deselectAllBtn)
         
+        buttonLayout.addWidget(self.selectAllBtn)
+        buttonLayout.addWidget(self.deselectAllBtn)
         layout.addLayout(buttonLayout)
         
+        # תיבות סימון לאפשרויות שונות
         self.checkBoxes = {
             "remove_empty_lines": QCheckBox("מחיקת שורות ריקות"),
             "remove_double_spaces": QCheckBox("מחיקת רווחים כפולים"),
@@ -2475,99 +2377,121 @@ class TextCleanerApp(QWidget):
             "normalize_quotes": QCheckBox("המרת גרשיים מוזרים לגרשיים רגילים"),
         }
 
+        # הוספת תיבות הסימון לממשק
         for checkbox in self.checkBoxes.values():
-            checkbox.setChecked(True)     
+            checkbox.setStyleSheet("font-size: 14px;")
+            checkbox.setChecked(True)
             layout.addWidget(checkbox)
         
+        # כפתורי הפעלה וביטול
         self.cleanBtn = QPushButton("הרץ כעת")
-        self.cleanBtn.clicked.connect(self.cleanText)
+        self.cleanBtn.setStyleSheet("font-size: 14px;")
+        self.cleanBtn.clicked.connect(self.runCleanText)
         layout.addWidget(self.cleanBtn)
         
         self.undoBtn = QPushButton("בטל שינוי אחרון")
+        self.undoBtn.setStyleSheet("font-size: 14px;")
         self.undoBtn.clicked.connect(self.undoChanges)
+        self.undoBtn.setEnabled(False)
         layout.addWidget(self.undoBtn)
         
         self.setLayout(layout)
-        self.setWindowTitle("תיקון שגיאות נפוצות")
-        self.resize(500, 400)
-        self.originalText = ""
 
-    def cleanText(self, filePath):
-        filePath = self.filePath.text()
- 
-        if not filePath:
-            QMessageBox.critical(self, "קלט לא תקין", "לא נבחר קובץ!")
+    def set_file_path(self, path):
+        """מקבלת את נתיב הקובץ מהחלון הראשי"""
+        self.file_path = path
+
+    def runCleanText(self):
+        """הפעלת פונקציית הניקוי"""
+        if not self.file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
-        
-        # בדיקת סוג הקובץ לפי סיומת
-        if not self.filePath.text().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return   
-        
+        self.cleanText()
+
+    def cleanText(self):
+        """פונקציית הניקוי העיקרית"""
         try:
-            with open(self.filePath.text(), 'r', encoding='utf-8') as file:
+            # קריאת הקובץ
+            with open(self.file_path, 'r', encoding='utf-8') as file:
                 text = file.read()
             
+            # שמירת הטקסט המקורי לצורך ביטול
             self.originalText = text
+            self.undoBtn.setEnabled(True)
             
+            # ביצוע כל הפעולות שנבחרו
             if self.checkBoxes["remove_empty_lines"].isChecked():
                 text = re.sub(r'\n\s*\n', '\n', text)
+            
             if self.checkBoxes["remove_double_spaces"].isChecked():
                 text = re.sub(r' +', ' ', text)
+            
             if self.checkBoxes["remove_spaces_before"].isChecked():
-                text = re.sub(r'\s+([\)\],.:])', r'\1', text)
+                text = re.sub(r'\s+([)\],.:])', r'\1', text)
+            
             if self.checkBoxes["remove_spaces_after"].isChecked():
-                text = re.sub(r'([\[\(])\s+', r'\1', text)
+                text = re.sub(r'([\[(])\s+', r'\1', text)
+            
             if self.checkBoxes["remove_spaces_around_newlines"].isChecked():
                 text = re.sub(r'\s*\n\s*', '\n', text)
-            if self.checkBoxes["replace_double_quotes"].isChecked():
-                text = text.replace("''", '"').replace("``", '"').replace("’’", '"')
-            if self.checkBoxes["normalize_quotes"].isChecked():
-                text = text.replace("“", '"').replace("”", '"').replace("‘", "'").replace("’", "'").replace("„", '"')
             
-            text = text.rstrip()  # מחיקת שורה אחרונה אם היא ריקה
+            if self.checkBoxes["replace_double_quotes"].isChecked():
+                text = text.replace("''", '"').replace("``", '"').replace("''", '"')
+            
+            if self.checkBoxes["normalize_quotes"].isChecked():
+                text = text.replace(""", '"').replace(""", '"').replace("'", "'").replace("'", "'").replace("„", '"')
+            
+            # מחיקת רווחים בסוף הקובץ
+            text = text.rstrip()
 
+            # בדיקה אם היו שינויים
             if text == self.originalText:
                 QMessageBox.information(self, "שינויי טקסט", "אין מה להחליף בקובץ זה.")
-            else:
-                with open(self.filePath.text(), 'w', encoding='utf-8') as file:
-                    file.write(text)
-                QMessageBox.information(self, "שינויי טקסט", "השינויים בוצעו בהצלחה.")
+                return
+
+            # שמירת השינויים
+            with open(self.file_path, 'w', encoding='utf-8') as file:
+                file.write(text)
+            
+            QMessageBox.information(self, "שינויי טקסט", "השינויים בוצעו בהצלחה.")
+            self.changes_made.emit()
 
         except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
+            QMessageBox.critical(self, "שגיאה", "הקובץ לא נמצא")
         except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return
+            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הקובץ: {str(e)}")
-
-    def loadFile(self):
-        options = QFileDialog.Options()
-        fileName, _ = QFileDialog.getOpenFileName(self, "בחר קובץ טקסט", "", "קבצי טקסט (*.txt);", options=options)
-        if fileName:
-            self.filePath.setText(fileName)
     
     def selectAll(self):
+        """בחירת כל האפשרויות"""
         for checkbox in self.checkBoxes.values():
             checkbox.setChecked(True)
     
     def deselectAll(self):
+        """ביטול כל האפשרויות"""
         for checkbox in self.checkBoxes.values():
             checkbox.setChecked(False)
     
     def undoChanges(self):
-        if self.filePath.text() and self.originalText:
-            with open(self.filePath.text(), 'w', encoding='utf-8') as file:
+        """ביטול השינוי האחרון"""
+        if not self.file_path or not self.originalText:
+            return
+            
+        try:
+            with open(self.file_path, 'w', encoding='utf-8') as file:
                 file.write(self.originalText)
+            QMessageBox.information(self, "ביטול שינויים", "השינויים בוטלו בהצלחה.")
+            self.changes_made.emit()
+            self.undoBtn.setEnabled(False)
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בביטול השינויים: {str(e)}")
 
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
+        """טעינת אייקון מקידוד Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
-
 # ==========================================
 # Script 12: נקודותיים ורווח
 # ==========================================
@@ -2651,12 +2575,11 @@ class ReplaceColonsAndSpaces(QWidget):
 class MainMenu(QWidget):
     def __init__(self):
         super().__init__()
-        self.document_history = DocumentHistory()
+        self.document_history = []  # היסטוריית שינויים
+        self.current_index = -1  # אינדקס נוכחי בהיסטוריה
         self.current_file_path = ""
-        self.current_version = "3.2"  # הגרסה הנוכחית של התוכנה
-        
-        self.file_loader = None
-        self.progress_dialog = None
+        self.last_processor_title = ""
+        self.current_version = "3.2"
         
         # הגדרת החלון
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
@@ -2665,103 +2588,97 @@ class MainMenu(QWidget):
         self.setGeometry(100, 100, 1200, 600)
         self.init_ui()
 
-        # הגדרת האייקון לשורת המשימות
         if sys.platform == 'win32':
             QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
             
+    def center_child_window(self, child_window):
+        """ממרכז חלון משני ביחס לחלון הראשי"""
+        # קבלת המיקום והגודל של החלון הראשי
+        parent_geometry = self.geometry()
+        parent_center = parent_geometry.center()
+        
+        # קבלת הגודל של החלון המשני
+        child_size = child_window.sizeHint()
+        
+        # חישוב המיקום החדש
+        new_x = parent_center.x() - child_size.width() // 2
+        new_y = parent_center.y() - child_size.height() // 2
+        
+        # הזזת החלון למיקום החדש
+        child_window.move(new_x, new_y)     
 
-          
-    
     def init_ui(self):
-        # יצירת Layout ראשי מסוג QHBoxLayout
         main_layout = QHBoxLayout()
         
-        # יצירת Widget מיכל לכפתורים וכפתור אודות
+        # יצירת מיכל ימני
         right_container = QWidget()
         right_container.setFixedWidth(550)
-        
-        # Layout אנכי לצד ימין
         right_layout = QVBoxLayout(right_container)
-        
-        # Layout לכפתורים
-        grid_layout = QGridLayout()
-        grid_layout.setContentsMargins(10, 10, 10, 10)
 
+        
+        buttons_grid_widget = QWidget()
+        grid_layout = QGridLayout(buttons_grid_widget)  # הגדרת ה-grid_layout
+        grid_layout.setSpacing(10)
+        
         # יצירת פאנל טקסט וכפתורי פעולה
         text_container = QWidget()
         text_layout = QVBoxLayout(text_container)
         text_layout.setContentsMargins(15, 15, 20, 10)
         
-        # יצירת כפתורי פעולה
+        # כפתורי פעולה
         action_buttons_layout = QHBoxLayout()
-
         
         # כפתור ביטול
-        undo_button = QPushButton("⟲")  # סמל ביטול
-        undo_button.setStyleSheet("""
+        self.undo_button = QPushButton("⟲")
+        self.undo_button.setStyleSheet("""
             font-weight: bold; 
             font-size: 14pt;
-
+            padding: 5px;
         """)
-        undo_button.setCursor(QCursor(Qt.PointingHandCursor))
-        undo_button.clicked.connect(lambda: print("undo"))
-        undo_button.setFixedSize(40, 40)
-        undo_button.setToolTip("בטל")
+        self.undo_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.undo_button.clicked.connect(self.undo_action)
+        self.undo_button.setFixedSize(40, 40)
+        self.undo_button.setToolTip("בטל")
+        self.undo_button.setEnabled(False)
         
-        # כפתור החזרה
-        redo_button = QPushButton("⟳")  # סמל החזרה
-        redo_button.setStyleSheet("""
+        # כפתור חזרה
+        self.redo_button = QPushButton("⟳")
+        self.redo_button.setStyleSheet("""
             font-weight: bold; 
             font-size: 14pt;
-
+            padding: 5px;
         """)
-        redo_button.setCursor(QCursor(Qt.PointingHandCursor))
-        redo_button.clicked.connect(lambda: print("redo"))
-        redo_button.setFixedSize(40, 40)
-        redo_button.setToolTip("חזור")
+        self.redo_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.redo_button.clicked.connect(self.redo_action)
+        self.redo_button.setFixedSize(40, 40)
+        self.redo_button.setToolTip("חזור")
+        self.redo_button.setEnabled(False)
         
         # כפתור שמירה
-        save_button = QPushButton("🖫")  # סמל שמירה
-        save_button.setStyleSheet("""
+        self.save_button = QPushButton("🖫")
+        self.save_button.setStyleSheet("""
             font-weight: bold; 
             font-size: 14pt;
+            padding: 5px;
         """)
-        save_button.setCursor(QCursor(Qt.PointingHandCursor))
-        save_button.clicked.connect(lambda: print("save"))
-        save_button.setFixedSize(40, 40)
-        save_button.setToolTip("שמור")
-        tooltip_style = """
-            QToolTip {
-                background-color: #eaeaea;
-                color: black;
-                font-weight: normal !important;  /* עובי גופן רגיל (לא מודגש) - חשוב! */
-                font-family: "Segoe UI", Arial !important;
-                font-size: 5pt !important;  /* גודל גופן קטן יותר - חשוב! */
-                padding: 5px;
-                border: 1pt solid #b7b5b5;
-                border-radius: 5px;
-            }
-        """
-        QApplication.instance().setStyleSheet(tooltip_style)
-            # יצירת תווית סטטוס
+        self.save_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.save_button.clicked.connect(self.save_file)
+        self.save_button.setFixedSize(40, 40)
+        self.save_button.setToolTip("שמור")
+        self.save_button.setEnabled(False)
+
+        # תווית סטטוס
         self.status_label = QLabel("לא בוצעו עדיין פעולות")
         self.status_label.setStyleSheet("""
-            QLabel {
-                color: #666666;
-                font-size: 14px;
-                padding: 5px;
-                font-family: "Segoe UI", Arial;
-                background-color: transparent;
-                border-radius: 10px;
-                padding: 5px 15px;
-            }
+            color: #666666;
+            font-size: 14px;
+            padding: 5px 15px;
+            background-color: transparent;
+            border-radius: 10px;
         """)
         self.status_label.setAlignment(Qt.AlignCenter)
         
-        # הוספת מרווח גמיש בתחילת שורת הכפתורים (צד ימין)
-        action_buttons_layout.addStretch()
-        # הוספת הכפתורים
-                # יצירת כפתור הוספת קובץ
+        # סידור כפתורים
         add_file_button = QPushButton("הוסף קובץ")
         add_file_button.setFixedSize(100, 40)
         add_file_button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -2772,101 +2689,44 @@ class MainMenu(QWidget):
                 background-color: #eaeaea;
                 color: black;
                 font-weight: bold;
-                font-family: "Segoe UI", Arial;
                 font-size: 8.5pt;
             }
             QPushButton:hover {
                 background-color: #b7b5b5;
             }
         """)
-        add_file_button.clicked.connect(self.select_file) 
+        add_file_button.clicked.connect(self.select_file)
 
-        # סידור הכפתורים בשורה עם הכפתור החדש בצד ימין
-        action_buttons_layout.addWidget(add_file_button)  # הוספת כפתור "הוסף קובץ" בצד ימין
+        action_buttons_layout.addWidget(add_file_button)
         action_buttons_layout.addStretch(1)
         action_buttons_layout.addWidget(self.status_label)
-        action_buttons_layout.addStretch(1) 
-        action_buttons_layout.addWidget(undo_button)
-        action_buttons_layout.addWidget(redo_button)
-        action_buttons_layout.addWidget(save_button)
+        action_buttons_layout.addStretch(1)
+        action_buttons_layout.addWidget(self.undo_button)
+        action_buttons_layout.addWidget(self.redo_button)
+        action_buttons_layout.addWidget(self.save_button)
 
-        # הוספת שורת כפתורי הפעולה ל-layout של הטקסט
-        text_layout.insertLayout(0, action_buttons_layout) 
-        spacer = QSpacerItem(0, 20, QSizePolicy.Minimum, QSizePolicy.Fixed)  # 20 פיקסלים מרווח
-        text_layout.addItem(spacer)
-        # הוספת פאנל הטקסט
+        # תצוגת טקסט
         self.text_display = QtWidgets.QTextBrowser()
         self.text_display.setReadOnly(True)
-        
-        # הגדרת כיוון טקסט מימין לשמאל
         self.text_display.setLayoutDirection(Qt.RightToLeft)
-        
-        # הגדרת סגנון עיצוב
+        self.text_display = QtWidgets.QTextBrowser()
+        self.text_display.setReadOnly(True)
+        self.text_display.setLayoutDirection(Qt.RightToLeft)
         self.text_display.setStyleSheet("""
             QTextBrowser {
                 background-color: transparent;
                 border: 2px solid black;
                 border-radius: 15px;
-                padding: 20px 40px;  /* הגדלת שוליים פנימיים */
+                padding: 20px 40px;
                 font-family: "Segoe UI", Arial;
                 font-size: 14px;
-                line-height: 1.5;     /* מרווח בין שורות */
-            }
-            p {
-            text-align: justify;
-            margin: 0;
-            padding: 5px 0;
-            text-indent: 20px;
-        }
-            
-            /* עיצוב כותרות */
-            h1 { 
-                font-size: 24px; 
-                font-weight: bold; 
-                margin: 10px 0;
-                text-align: right;  /* יישור כותרות לימין */
-            }
-            h2 { 
-                font-size: 20px; 
-                font-weight: bold; 
-                margin: 8px 0;
-                text-align: right;
-            }
-            h3 { 
-                font-size: 18px; 
-                font-weight: bold; 
-                margin: 6px 0;
-                text-align: right;
-            }
-            h4 { 
-                font-size: 16px; 
-                font-weight: bold; 
-                margin: 4px 0;
-                text-align: right;
-            }
-            h5 { 
-                font-size: 14px; 
-                font-weight: bold; 
-                margin: 2px 0;
-                text-align: right;
-            }
-            h6 { 
-                font-size: 12px; 
-                font-weight: bold; 
-                margin: 2px 0;
-                text-align: right;
-            }
-            
-            /* עיצוב פסקאות */
-            p {
-                text-align: justify;
-                margin: 0;
-                padding: 5px 0;
-                text-indent: 20px;  /* הזחה בתחילת פסקה */
+                line-height: 1.5;
             }
         """)
-        
+
+        text_layout.insertLayout(0, action_buttons_layout)
         text_layout.addWidget(self.text_display)
+
         
         # רשימת כפתורים עם שמות הפונקציות
         button_info = [
@@ -2912,7 +2772,7 @@ class MainMenu(QWidget):
 
         # הוספת הגריד ל-layout הימני
         right_layout.addLayout(grid_layout)  # רק פעם אחת!
-
+        right_layout.addWidget(buttons_grid_widget)
         # יצירת layout אופקי לכפתורים התחתונים
         bottom_buttons_layout = QHBoxLayout()
         
@@ -2950,64 +2810,255 @@ class MainMenu(QWidget):
         # הגדרת ה-layout הראשי לחלון
         self.setLayout(main_layout)
 
+    def process_text(self, processor_widget):
+        """עיבוד טקסט באמצעות מעבד ספציפי"""
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+            
+        try:
+            # שמירת התוכן המקורי למקרה של כישלון
+            original_content = ""
+            if self.current_index >= 0 and self.current_index < len(self.document_history):
+                original_content = self.document_history[self.current_index][0]
+            
+            # הגדרת נתיב הקובץ למעבד
+            processor_widget.set_file_path(self.current_file_path)
+            
+            # שמירת שם החלון בתוך המעבד
+            self.last_processor_title = processor_widget.windowTitle()
+            
+            # חיבור הסיגנל לפונקציה שתעדכן את התצוגה
+            processor_widget.changes_made.connect(self.refresh_after_processing)
+            
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הטקסט: {str(e)}")
+            
+    def _complete_processing(self, processor_widget, original_content):
+        """השלמת עיבוד הטקסט לאחר המתנה קצרה"""
+        try:
+            # קריאת התוכן החדש
+            with open(self.current_file_path, 'r', encoding='utf-8') as file:
+                new_content = file.read()
+            
+            # בדיקה אם היה שינוי
+            if new_content != original_content:
+                # המרה לתצוגה
+                display_content = new_content.replace('\n', '<br>\n')
+                
+                # עדכון התצוגה
+                self.text_display.setHtml(display_content)
+                
+                # קבלת תיאור מפורט של הפעולה
+                action_description = self._get_action_description(processor_widget.windowTitle())
+                
+                # עדכון ההיסטוריה והסטטוס
+                self._safe_update_history(new_content, action_description)
+                self.status_label.setText(action_description)
+                
+                # שליחת סיגנל על שינויים
+                processor_widget.changes_made.emit()
+            else:
+                self.status_label.setText("לא בוצעו שינויים")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בהשלמת העיבוד: {str(e)}")
+            self.status_label.setText("שגיאה בעיבוד")
+
+    def _get_action_description(self, window_title):
+        """קבלת תיאור מפורט של הפעולה לפי שם החלון"""
+        descriptions = {
+            "יצירת כותרות לאוצריא": "בוצעה יצירת כותרות בפורמט אוצריא",
+            "יצירת כותרות לאותיות בודדות": "בוצעה יצירת כותרות לאותיות בודדות",
+            "הוספת מספר עמוד בכותרת": "נוספו מספרי עמודים בכותרות",
+            "שינוי רמת כותרת": "בוצע שינוי ברמת הכותרות",
+            "הדגשת מילה ראשונה וניקוד": "בוצעה הדגשת מילים ראשונות והוספת ניקוד",
+            "יצירת כותרות לעמוד ב": "נוצרו כותרות לעמוד ב",
+            "החלפת כותרות לעמוד ב": "הוחלפו כותרות בעמוד ב",
+            "בדיקת שגיאות בכותרות": "בוצעה בדיקת שגיאות בכותרות",
+            "בדיקת שגיאות לש\"ס": "בוצעה בדיקת שגיאות מותאמת לש\"ס",
+            "המרת תמונה לטקסט": "בוצעה המרת תמונה לטקסט",
+            "תיקון שגיאות נפוצות": "בוצע תיקון שגיאות נפוצות",
+            "נקודותיים ורווח": "בוצע תיקון נקודותיים ורווחים"
+        }
+        return descriptions.get(window_title, f"בוצע עיבוד: {window_title}")
+
+    def _safe_update_history(self, content, description):
+        """עדכון בטוח של ההיסטוריה"""
+        try:
+            # מחיקת היסטוריה "עתידית" אם קיימת
+            if self.current_index < len(self.document_history) - 1:
+                self.document_history = self.document_history[:self.current_index + 1]
+            
+            # הוספת המצב החדש להיסטוריה
+            self.document_history.append((content, description))
+            self.current_index = len(self.document_history) - 1
+            
+            # עדכון מצב הכפתורים
+            self.update_buttons_state()
+            
+        except Exception as e:
+            print(f"שגיאה בעדכון ההיסטוריה: {str(e)}")
+
+
     def undo_action(self):
         """ביטול פעולה אחרונה"""
-        content, description = self.document_history.undo()
-        if content is not None:
-            self.text_display.setHtml(content)
-            self.status_label.setText(f"בוטל: {description}")
-            self.update_undo_redo_buttons()
+        try:
+            if self.current_index > 0:
+                self.current_index -= 1
+                content, description = self.document_history[self.current_index]
+                
+                # עדכון התצוגה
+                display_content = content.replace('\n', '<br>\n')
+                self.text_display.setHtml(display_content)
+                
+                # עדכון הקובץ
+                with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                # עדכון הסטטוס
+                self.status_label.setText(f"בוטל: {description}")
+                
+                # עדכון מצב הכפתורים
+                self.update_buttons_state()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בביטול פעולה: {str(e)}")
 
     def redo_action(self):
         """חזרה על פעולה שבוטלה"""
-        content, description = self.document_history.redo()
-        if content is not None:
-            self.text_display.setHtml(content)
-            self.status_label.setText(description)
-            self.update_undo_redo_buttons()
+        try:
+            if self.current_index < len(self.document_history) - 1:
+                self.current_index += 1
+                content, description = self.document_history[self.current_index]
+                
+                # עדכון התצוגה
+                display_content = content.replace('\n', '<br>\n')
+                self.text_display.setHtml(display_content)
+                
+                # עדכון הקובץ
+                with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                
+                # עדכון הסטטוס
+                self.status_label.setText(description)
+                
+                # עדכון מצב הכפתורים
+                self.update_buttons_state()
+                
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בשחזור פעולה: {str(e)}")
 
-    def update_content(self, new_content, description):
-        """עדכון תוכן המסמך"""
-        self.document_history.push_state(new_content, description)
-        self.text_display.setHtml(new_content)
-        self.status_label.setText(description)
-        self.update_undo_redo_buttons()
+    def update_buttons_state(self):
+        """עדכון מצב כל הכפתורים"""
+        try:
+            # עדכון כפתורי ביטול וחזרה
+            self.undo_button.setEnabled(self.current_index > 0)
+            self.redo_button.setEnabled(self.current_index < len(self.document_history) - 1)
+            
+            # עדכון כפתור שמירה - פעיל אם יש קובץ נוכחי ויש שינויים
+            has_changes = len(self.document_history) > 0
+            self.save_button.setEnabled(bool(self.current_file_path) and has_changes)
+            
+            print(f"עדכון מצב כפתורים - קובץ: {bool(self.current_file_path)}, "
+                  f"שינויים: {has_changes}, "
+                  f"אינדקס: {self.current_index}")
+            
+        except Exception as e:
+            print(f"שגיאה בעדכון מצב הכפתורים: {str(e)}")
+            
+    def save_file(self):
+        """שמירת הקובץ"""
+        if not self.current_file_path:
+            self.save_file_as()
+            return
+            
+        try:
+            if self.current_index >= 0 and self.current_index < len(self.document_history):
+                # שימוש בתוכן המקורי מההיסטוריה
+                content = self.document_history[self.current_index][0]
+            else:
+                # במקרה שאין היסטוריה, ניקח את התוכן הנוכחי ונסיר ממנו את התגים
+                content = self.text_display.toHtml()
+                # הסרת כל התגים של HTML
+                content = re.sub(r'<[^>]+>', '', content)
+                content = content.replace('&nbsp;', ' ')  # החלפת רווחים מיוחדים
+            
+            with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                file.write(content)
+                
+            self.status_label.setText("הקובץ נשמר בהצלחה")
+            QMessageBox.information(self, "שמירה", "הקובץ נשמר בהצלחה!")
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
 
+    def save_file(self):
+        """שמירת הקובץ"""
+        try:
+            if not self.current_file_path:
+                return
+            
+            # שמירת התוכן הנוכחי
+            current_content = self.document_history[self.current_index][0]
+            with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                file.write(current_content)
+            
+            self.status_label.setText("הקובץ נשמר בהצלחה")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
+            
     def select_file(self):
         """בחירת קובץ"""
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
-            self, "בחר קובץ טקסט", "", 
-            "קבצי טקסט (*.txt);;כל הקבצים (*.*)", 
+            self,
+            "בחר קובץ טקסט",
+            "",
+            "קבצי טקסט (*.txt)",
+            
             options=options
         )
+        
         if file_path:
-            if not file_path.lower().endswith('.txt'):
-                QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
-                return
+            self.current_file_path = file_path
+            self.load_file(file_path)
+
+    def load_file(self, file_path):
+        """טעינת קובץ"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+                
+            # המרת רווחים וירידות שורה לתגים מתאימים תוך שמירה על תגי HTML קיימים
+            processed_content = content.replace('\n', '<br>\n')  # מוסיף <br> לפני כל ירידת שורה
             
-            if self.load_file_content(file_path):
-                self.current_file_path = file_path
-                self.update_content(
-                    self.text_display.toHtml(),
-                    f"נטען קובץ: {os.path.basename(file_path)}"
-                )
-                QMessageBox.information(self, "הקובץ נטען", "הקובץ נטען בהצלחה!")
+            self.text_display.setHtml(processed_content)
+            self.document_history = [(content, "מצב התחלתי")]  # שומר את התוכן המקורי ללא תגי BR
+            self.current_index = 0
+            self.update_buttons_state()
+            self.status_label.setText("קובץ נטען בהצלחה")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בטעינת הקובץ: {str(e)}")
+
 
     def save_action(self):
+
         """שמירת הקובץ"""
         if not self.current_file_path:
-            self.save_as_action()
+            self.save_file_as()
             return
-        
+            
         try:
             content = self.text_display.toHtml()
+            # המרה חזרה - הסרת תגי <br> שהוספנו
+            content = content.replace('<br>\n', '\n')
+            
             with open(self.current_file_path, 'w', encoding='utf-8') as file:
                 file.write(content)
-            self.update_content(
-                content,
-                f"נשמר קובץ: {os.path.basename(self.current_file_path)}"
-            )
+                
+            self.status_label.setText("הקובץ נשמר בהצלחה")
             QMessageBox.information(self, "שמירה", "הקובץ נשמר בהצלחה!")
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
@@ -3027,10 +3078,7 @@ class MainMenu(QWidget):
             self.current_file_path = file_path
             self.save_action()
 
-    def update_undo_redo_buttons(self):
-        """עדכון מצב כפתורי undo/redo"""
-        self.undo_button.setEnabled(self.document_history.can_undo())
-        self.redo_button.setEnabled(self.document_history.can_redo())
+
 
     def open_about_dialog(self):
         """פתיחת חלון 'אודות'"""
@@ -3038,19 +3086,28 @@ class MainMenu(QWidget):
         dialog.exec_()
 
     def open_create_headers_otzria(self):
-        self.create_headers_window = CreateHeadersOtZria()
-        self.create_headers_window.show()
+        """פתיחת חלון יצירת כותרות לאוצריא"""
+        try:
+            self.create_headers_window = CreateHeadersOtZria(self)  # שים לב להעברת self כ-parent
+            self.last_processor_title = "יצירת כותרות לאוצריא"
+            self.create_headers_window.changes_made.connect(self.update_content_from_child)
+            self.create_headers_window.show()
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת החלון: {str(e)}")
 
     def open_create_single_letter_headers(self):
         self.create_single_letter_headers_window = CreateSingleLetterHeaders()
+        self.create_headers_window.changes_made.connect(self.update_content_from_child)
         self.create_single_letter_headers_window.show()
 
     def open_add_page_number_to_heading(self):
         self.add_page_number_window = AddPageNumberToHeading()
+        self.create_headers_window.changes_made.connect(self.update_content_from_child)
         self.add_page_number_window.show()
 
     def open_change_heading_level(self):
         self.change_heading_level_window = ChangeHeadingLevel()
+        self.create_headers_window.changes_made.connect(self.update_content_from_child)
         self.change_heading_level_window.show()
 
     def open_emphasize_and_punctuate(self):
@@ -3092,109 +3149,78 @@ class MainMenu(QWidget):
         return QIcon(pixmap)
 
 
-    def load_file_content(self, file_path):
-        """טעינת תוכן הקובץ וחזרה האם הטעינה הצליחה"""
+    def refresh_after_processing(self):
+        """עדכון התצוגה לאחר עיבוד"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                self.original_content = file.read()
-                # הגדרת התוכן כ-HTML
-                self.text_display.setHtml(self.original_content)
-                return True
-        except UnicodeDecodeError:
-            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return False
+            # קריאת התוכן העדכני מהקובץ
+            with open(self.current_file_path, 'r', encoding='utf-8') as file:
+                new_content = file.read()
+            
+            # המרה לתצוגה
+            display_content = new_content.replace('\n', '<br>\n')
+            
+            # עדכון התצוגה
+            self.text_display.setHtml(display_content)
+            
+            # קבלת תיאור הפעולה משם החלון האחרון
+            if self.last_processor_title:
+                action_description = self._get_action_description(self.last_processor_title)
+                # עדכון ההיסטוריה והסטטוס
+                self._safe_update_history(new_content, action_description)
+                self.status_label.setText(action_description)
+                
         except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת הקובץ: {str(e)}")
-            return False
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעדכון התצוגה: {str(e)}")
 
+    def _get_action_description(self, window_title):
+        """קבלת תיאור מפורט של הפעולה לפי שם החלון"""
+        descriptions = {
+            "יצירת כותרות לאוצריא": "בוצעה יצירת כותרות בפורמט אוצריא",
+            "יצירת כותרות לאותיות בודדות": "בוצעה יצירת כותרות לאותיות בודדות",
+            "הוספת מספר עמוד בכותרת": "נוספו מספרי עמודים בכותרות",
+            "שינוי רמת כותרת": "בוצע שינוי ברמת הכותרות",
+            "הדגשת מילה ראשונה וניקוד": "בוצעה הדגשת מילים ראשונות והוספת ניקוד",
+            "יצירת כותרות לעמוד ב": "נוצרו כותרות לעמוד ב",
+            "החלפת כותרות לעמוד ב": "הוחלפו כותרות בעמוד ב",
+            "בדיקת שגיאות בכותרות": "בוצעה בדיקת שגיאות בכותרות",
+            "בדיקת שגיאות לש\"ס": "בוצעה בדיקת שגיאות מותאמת לש\"ס",
+            "המרת תמונה לטקסט": "בוצעה המרת תמונה לטקסט",
+            "תיקון שגיאות נפוצות": "בוצע תיקון שגיאות נפוצות",
+            "נקודותיים ורווח": "בוצע תיקון נקודותיים ורווחים",
+            "סקריפט 1": "בוצע עיבוד סקריפט 1",  # הוספת תיאורים לסקריפטים
+            "סקריפט 2": "בוצע עיבוד סקריפט 2",
+            
+        }
+        return descriptions.get(window_title, f"בוצע עיבוד: {window_title}")
+   
     def update_content_from_child(self):
         """עדכון התצוגה לאחר שינויים בחלונות המשנה"""
-        if self.current_file_path:
-            self.load_file_content(self.current_file_path)
-    def load_file_content(self, file_path):
-        """טעינת תוכן הקובץ וחזרה האם הטעינה הצליחה"""
+        if not self.current_file_path:
+            return
+            
         try:
-            # יצירת דיאלוג המתנה מותאם
-            please_wait = QDialog(self)
-            please_wait.setWindowTitle("טוען קובץ")
-            please_wait.setWindowModality(Qt.WindowModal)
-            please_wait.setFixedSize(300, 100)
+            # קריאת התוכן העדכני
+            with open(self.current_file_path, 'r', encoding='utf-8') as file:
+                new_content = file.read()
             
-            # הוספת תווית לדיאלוג
-            layout = QVBoxLayout()
-            label = QLabel("אנא המתן בזמן טעינת הקובץ...")
-            label.setAlignment(Qt.AlignCenter)
-            layout.addWidget(label)
-            please_wait.setLayout(layout)
+            # המרה לתצוגה
+            display_content = new_content.replace('\n', '<br>\n')
+            self.text_display.setHtml(display_content)
             
-            # הצגת הדיאלוג
-            please_wait.show()
-            QApplication.processEvents()
+            # עדכון ההיסטוריה עם התוכן החדש
+            action_description = self._get_action_description(self.last_processor_title)
+            self._safe_update_history(new_content, action_description)
             
-            # טעינת הקובץ
-            with open(file_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-                self.text_display.clear()
-                self.text_display.setHtml(content)
+            # הדפסת מידע לצורך דיבוג
+            print(f"עודכן תוכן חדש - תיאור: {action_description}")
+            print(f"גודל היסטוריה: {len(self.document_history)}")
             
-            # סגירת דיאלוג ההמתנה
-            please_wait.done(0)
-            please_wait.deleteLater()
-            return True
-            
-        except UnicodeDecodeError:
-            please_wait.done(0)
-            please_wait.deleteLater()
-            QMessageBox.critical(self, "שגיאה", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return False
         except Exception as e:
-            please_wait.done(0)
-            please_wait.deleteLater()
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת הקובץ: {str(e)}")
-            return False
+            print(f"שגיאה בעדכון התוכן: {str(e)}")
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בעדכון התוכן: {str(e)}")
 
-    def on_file_loaded(self, result):
-        """מטפל בתוצאות טעינת הקובץ"""
-        if self.progress_dialog:
-            self.progress_dialog.close()
 
-        if result['success']:
-            self.text_display.setHtml(result['content'])
-            QMessageBox.information(self, "הקובץ נטען", "הקובץ נטען בהצלחה!")
-            return True
-        else:
-            QMessageBox.critical(self, "שגיאה", result['error'])
-            return False
-
-    def select_file(self):
-        """בחירת קובץ וטעינתו"""
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(
-            self, "בחר קובץ טקסט", "", 
-            "קבצי טקסט (*.txt);;כל הקבצים (*.*)", 
-            options=options
-        )
-    
-        if file_path:
-           if not file_path.lower().endswith('.txt'):
-               QMessageBox.critical(self, "שגיאה", "יש לבחור קובץ טקסט (txt) בלבד")
-               return
             
-           if self.load_file_content(file_path):
-                self.current_file_path = file_path
-                QMessageBox.information(self, "הקובץ נטען", "הקובץ נטען בהצלחה!")
-            
-    def refresh_display(self):
-        """רענון תצוגת הטקסט לאחר שינויים"""
-        if self.current_file_path:
-            try:
-                self.load_file_content(self.current_file_path)
-            except Exception as e:
-                QMessageBox.critical(self, "שגיאה", f"שגיאה ברענון התצוגה: {str(e)}")
-
-
-
-
     # סקריפט 1 - יצירת כותרות לאוצריא
     def open_create_headers_otzria(self):
         if not self.current_file_path:
@@ -3532,7 +3558,7 @@ class UpdateChecker(QThread):
     def run(self):
         try:
             response = requests.get(
-                "https://api.github.com/repos/QDARTYQO/ww/releases/latest",
+                "https://github.com/YOSEFTT/EditingDictaBooks/releases/latest",
                 timeout=10
             )
             response.raise_for_status()
