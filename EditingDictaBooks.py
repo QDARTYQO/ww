@@ -12,8 +12,6 @@ from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette
 from PyQt5.QtWinExtras import QtWin
 from PyQt5.QtWidgets import QProxyStyle, QMessageBox
 from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer
-
-
 from pyluach import gematria
 from bs4 import BeautifulSoup
 import re
@@ -24,20 +22,19 @@ import shutil
 from packaging import version
 import base64
 import urllib.request
-
-from PyQt5 import QtCore
 import traceback
 
 
 
-
+ #פונקצייה גלובלית לטיפול בשגיאות
 def handle_exception(exc_type, exc_value, exc_traceback):
     """טיפול בשגיאות לא מטופלות"""
     print(''.join(traceback.format_exception(exc_type, exc_value, exc_traceback)))
     
-# הגדרת מטפל שגיאות גלובלי
 sys.excepthook = handle_exception
 
+
+ #עיצוב גלובלי
 GLOBAL_STYLE = """
     QWidget {
         font-family: "Segoe UI", Arial;
@@ -65,8 +62,8 @@ myappid = 'MIT.LEARN_PYQT.dictatootzaria'
 
 # מחרוזת Base64 של האייקון (החלף את זה עם המחרוזת שתקבל אחרי המרת הקובץ שלך ל־Base64)
 icon_base64 = "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"
-#מחלקה לטעינת קבצים
 
+ #מחלקה לטעינת קבצים
 class FileLoader(QThread):
     """מחלקה לטעינת קבצים ברקע"""
     finished = pyqtSignal(dict)  # שולח מילון עם התוצאות
@@ -2492,91 +2489,14 @@ class TextCleanerApp(QWidget):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
+
 # ==========================================
-# Script 12: נקודותיים ורווח
-# ==========================================
-class ReplaceColonsAndSpaces(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
-    def __init__(self):
-        super().__init__()
-        self.file_path = "" 
-        self.setWindowTitle("נקודותיים ורווח")
-        self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 550, 150)
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout()
-
-        # הודעת הסבר
-        label = QLabel("תוכנה זו מחליפה את התווים - נקודותיים ורווח, בנקודותיים ואנטר\nתוכנה זו כבר לא אקטואלית למי שמשתמש בגירסה 4.4 ואילך של ספרי דיקטה")
-        label.setAlignment(Qt.AlignCenter)
-        label.setStyleSheet("font-size: 20px;")
-        layout.addWidget(label)
-
-        # כפתור הפעלה
-        run_button = QPushButton("הפעל")
-        run_button.clicked.connect(self.run_processing)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
-        layout.addWidget(run_button)
-
-        self.setLayout(layout)
-
-    def set_file_path(self, path):
-        """מקבלת את נתיב הקובץ מהחלון הראשי"""
-        self.file_path = path
-
-    def run_processing(self):
-        if not self.file_path:
-            QMessageBox.warning(self, "קלט לא תקין", "לא נבחר קובץ!")
-            return
-        
-        # בדיקת סוג הקובץ לפי סיומת
-        if not self.file_path.lower().endswith('.txt'):
-            QMessageBox.critical(self, "קלט לא תקין", "סוג הקובץ אינו נתמך\nבחר קובץ טקסט [בסיומת TXT.]")
-            return      
-
-        try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-
-            # שלב 1: החלפת רצפים של רווחים באנטר בלבד
-            new_content = re.sub(r' {1,5}\n', '\n', content)
-
-            # שלב 2: החלפת נקודותיים ורווח בנקודותיים ואנטר
-            new_content = re.sub(r':\s', ':\n', new_content)
-
-            if content == new_content:
-                QMessageBox.information(self, "!שים לב", "לא נמצא מה להחליף")
-            else:
-                with open(self.file_path, 'w', encoding='utf-8') as file:
-                    file.write(new_content)
-                QMessageBox.information(self, "!מזל טוב", "ההחלפה הושלמה בהצלחה!")
-                self.changes_made.emit()  # פליטת האות שינויים בוצעו
-        
-        except FileNotFoundError:
-            QMessageBox.critical(self, "קלט לא תקין", "הקובץ לא נמצא")
-            return
-        except UnicodeDecodeError:
-            QMessageBox.critical(self, "קלט לא תקין", "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8.")
-            return   
-        except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"ארעה שגיאה במהלך העיבוד: {str(e)}")
-
-    # פונקציה לטעינת אייקון ממחרוזת Base64
-    def load_icon_from_base64(self, base64_string):
-        pixmap = QPixmap()
-        pixmap.loadFromData(base64.b64decode(base64_string))
-        return QIcon(pixmap)
-# ==========================================
-# Main Menu: תפריט ראשי לבחירת הסקריפטים
+# Main Menu: תפריט ראשי ופונקציות מרכזיות
 # ==========================================
 class MainMenu(QWidget):
     def __init__(self):
         super().__init__()
-        self.document_history = []  # היסטוריית שינויים
-        self.current_index = -1  # אינדקס נוכחי בהיסטוריה
+        self.document_history = []  
         self.current_file_path = ""
         self.last_processor_title = ""
         self.current_version = "3.2"
@@ -2591,36 +2511,21 @@ class MainMenu(QWidget):
         if sys.platform == 'win32':
             QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
             
-    def center_child_window(self, child_window):
-        """ממרכז חלון משני ביחס לחלון הראשי"""
-        # קבלת המיקום והגודל של החלון הראשי
-        parent_geometry = self.geometry()
-        parent_center = parent_geometry.center()
-        
-        # קבלת הגודל של החלון המשני
-        child_size = child_window.sizeHint()
-        
-        # חישוב המיקום החדש
-        new_x = parent_center.x() - child_size.width() // 2
-        new_y = parent_center.y() - child_size.height() // 2
-        
-        # הזזת החלון למיקום החדש
-        child_window.move(new_x, new_y)     
 
     def init_ui(self):
         main_layout = QHBoxLayout()
         
-        # יצירת מיכל ימני
+
         right_container = QWidget()
         right_container.setFixedWidth(550)
         right_layout = QVBoxLayout(right_container)
 
         
         buttons_grid_widget = QWidget()
-        grid_layout = QGridLayout(buttons_grid_widget)  # הגדרת ה-grid_layout
+        grid_layout = QGridLayout(buttons_grid_widget)  
         grid_layout.setSpacing(10)
         
-        # יצירת פאנל טקסט וכפתורי פעולה
+        # פאנל טקסט
         text_container = QWidget()
         text_layout = QVBoxLayout(text_container)
         text_layout.setContentsMargins(15, 15, 20, 10)
@@ -2678,7 +2583,7 @@ class MainMenu(QWidget):
         """)
         self.status_label.setAlignment(Qt.AlignCenter)
         
-        # סידור כפתורים
+
         add_file_button = QPushButton("הוסף קובץ")
         add_file_button.setFixedSize(100, 40)
         add_file_button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -2744,7 +2649,7 @@ class MainMenu(QWidget):
             ("12\n\nנקודותיים ורווח\n\n", self.open_replace_colons_and_spaces),
         ]
         
-        # יצירת והוספת הכפתורים לגריד
+
         for i, (text, func) in enumerate(button_info):
             button = QPushButton(text)
             button.setFixedSize(170, 150)
@@ -2770,20 +2675,20 @@ class MainMenu(QWidget):
             grid_layout.addWidget(button, row, col)
 
 
-        # הוספת הגריד ל-layout הימני
-        right_layout.addLayout(grid_layout)  # רק פעם אחת!
+
+        right_layout.addLayout(grid_layout) 
         right_layout.addWidget(buttons_grid_widget)
-        # יצירת layout אופקי לכפתורים התחתונים
+        #  layout כפתורים תחתון
         bottom_buttons_layout = QHBoxLayout()
         
-        # יצירת כפתור אודות
+        # אודות
         about_button = QPushButton("i")
         about_button.setStyleSheet("font-weight: bold; font-size: 12pt;")
         about_button.setCursor(QCursor(Qt.PointingHandCursor))
         about_button.clicked.connect(self.open_about_dialog)
         about_button.setFixedSize(40, 40)
         
-        # יצירת כפתור עדכונים
+        # עדכונים
         update_button = QPushButton("⭳")  # סמל הורדה
         update_button.setStyleSheet("""
             font-weight: bold; 
@@ -2794,24 +2699,22 @@ class MainMenu(QWidget):
         update_button.setFixedSize(40, 40)
         update_button.setToolTip("עדכונים")
         
-        # הוספת הכפתורים ללא stretch
+
         bottom_buttons_layout.addWidget(about_button)
         bottom_buttons_layout.addWidget(update_button)
-        # הוספת מרווח גמיש בצד ימין
+
         bottom_buttons_layout.addStretch()
-        
-        # הוספת שורת הכפתורים התחתונה ל-layout הימני
+
         right_layout.addLayout(bottom_buttons_layout)
 
-        # הוספת הרכיבים ל-layout הראשי
+
         main_layout.addWidget(right_container)
         main_layout.addWidget(text_container, stretch=1)
         
-        # הגדרת ה-layout הראשי לחלון
+
         self.setLayout(main_layout)
 
     def process_text(self, processor_widget):
-        """עיבוד טקסט באמצעות מעבד ספציפי"""
         if not self.current_file_path:
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
             return
@@ -2822,41 +2725,30 @@ class MainMenu(QWidget):
             if self.current_index >= 0 and self.current_index < len(self.document_history):
                 original_content = self.document_history[self.current_index][0]
             
-            # הגדרת נתיב הקובץ למעבד
+
             processor_widget.set_file_path(self.current_file_path)
-            
-            # שמירת שם החלון בתוך המעבד
             self.last_processor_title = processor_widget.windowTitle()
-            
-            # חיבור הסיגנל לפונקציה שתעדכן את התצוגה
             processor_widget.changes_made.connect(self.refresh_after_processing)
             
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעיבוד הטקסט: {str(e)}")
             
     def _complete_processing(self, processor_widget, original_content):
-        """השלמת עיבוד הטקסט לאחר המתנה קצרה"""
         try:
-            # קריאת התוכן החדש
             with open(self.current_file_path, 'r', encoding='utf-8') as file:
                 new_content = file.read()
-            
-            # בדיקה אם היה שינוי
+
             if new_content != original_content:
                 # המרה לתצוגה
                 display_content = new_content.replace('\n', '<br>\n')
-                
-                # עדכון התצוגה
+
                 self.text_display.setHtml(display_content)
-                
-                # קבלת תיאור מפורט של הפעולה
+
                 action_description = self._get_action_description(processor_widget.windowTitle())
-                
-                # עדכון ההיסטוריה והסטטוס
+
                 self._safe_update_history(new_content, action_description)
                 self.status_label.setText(action_description)
-                
-                # שליחת סיגנל על שינויים
+
                 processor_widget.changes_made.emit()
             else:
                 self.status_label.setText("לא בוצעו שינויים")
@@ -2866,7 +2758,6 @@ class MainMenu(QWidget):
             self.status_label.setText("שגיאה בעיבוד")
 
     def _get_action_description(self, window_title):
-        """קבלת תיאור מפורט של הפעולה לפי שם החלון"""
         descriptions = {
             "יצירת כותרות לאוצריא": "בוצעה יצירת כותרות בפורמט אוצריא",
             "יצירת כותרות לאותיות בודדות": "בוצעה יצירת כותרות לאותיות בודדות",
@@ -2884,7 +2775,6 @@ class MainMenu(QWidget):
         return descriptions.get(window_title, f"בוצע עיבוד: {window_title}")
 
     def _safe_update_history(self, content, description):
-        """עדכון בטוח של ההיסטוריה"""
         try:
             # מחיקת היסטוריה "עתידית" אם קיימת
             if self.current_index < len(self.document_history) - 1:
@@ -2907,50 +2797,36 @@ class MainMenu(QWidget):
             if self.current_index > 0:
                 self.current_index -= 1
                 content, description = self.document_history[self.current_index]
-                
-                # עדכון התצוגה
+
                 display_content = content.replace('\n', '<br>\n')
                 self.text_display.setHtml(display_content)
-                
-                # עדכון הקובץ
+
                 with open(self.current_file_path, 'w', encoding='utf-8') as file:
                     file.write(content)
-                
-                # עדכון הסטטוס
                 self.status_label.setText(f"בוטל: {description}")
-                
-                # עדכון מצב הכפתורים
                 self.update_buttons_state()
                 
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בביטול פעולה: {str(e)}")
 
     def redo_action(self):
-        """חזרה על פעולה שבוטלה"""
         try:
             if self.current_index < len(self.document_history) - 1:
                 self.current_index += 1
                 content, description = self.document_history[self.current_index]
-                
-                # עדכון התצוגה
                 display_content = content.replace('\n', '<br>\n')
                 self.text_display.setHtml(display_content)
-                
-                # עדכון הקובץ
+
                 with open(self.current_file_path, 'w', encoding='utf-8') as file:
                     file.write(content)
                 
-                # עדכון הסטטוס
                 self.status_label.setText(description)
-                
-                # עדכון מצב הכפתורים
                 self.update_buttons_state()
                 
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בשחזור פעולה: {str(e)}")
 
     def update_buttons_state(self):
-        """עדכון מצב כל הכפתורים"""
         try:
             # עדכון כפתורי ביטול וחזרה
             self.undo_button.setEnabled(self.current_index > 0)
@@ -2968,7 +2844,6 @@ class MainMenu(QWidget):
             print(f"שגיאה בעדכון מצב הכפתורים: {str(e)}")
             
     def save_file(self):
-        """שמירת הקובץ"""
         if not self.current_file_path:
             self.save_file_as()
             return
@@ -2978,7 +2853,6 @@ class MainMenu(QWidget):
                 # שימוש בתוכן המקורי מההיסטוריה
                 content = self.document_history[self.current_index][0]
             else:
-                # במקרה שאין היסטוריה, ניקח את התוכן הנוכחי ונסיר ממנו את התגים
                 content = self.text_display.toHtml()
                 # הסרת כל התגים של HTML
                 content = re.sub(r'<[^>]+>', '', content)
@@ -2997,8 +2871,6 @@ class MainMenu(QWidget):
         try:
             if not self.current_file_path:
                 return
-            
-            # שמירת התוכן הנוכחי
             current_content = self.document_history[self.current_index][0]
             with open(self.current_file_path, 'w', encoding='utf-8') as file:
                 file.write(current_content)
@@ -3009,7 +2881,6 @@ class MainMenu(QWidget):
             QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
             
     def select_file(self):
-        """בחירת קובץ"""
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
             self,
@@ -3025,7 +2896,6 @@ class MainMenu(QWidget):
             self.load_file(file_path)
 
     def load_file(self, file_path):
-        """טעינת קובץ"""
         try:
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
@@ -3044,15 +2914,13 @@ class MainMenu(QWidget):
 
 
     def save_action(self):
-
-        """שמירת הקובץ"""
         if not self.current_file_path:
             self.save_file_as()
             return
             
         try:
             content = self.text_display.toHtml()
-            # המרה חזרה - הסרת תגי <br> שהוספנו
+            # המרה חזרה - הסרת תגי <br> 
             content = content.replace('<br>\n', '\n')
             
             with open(self.current_file_path, 'w', encoding='utf-8') as file:
@@ -3062,21 +2930,6 @@ class MainMenu(QWidget):
             QMessageBox.information(self, "שמירה", "הקובץ נשמר בהצלחה!")
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
-
-    def save_as_action(self):
-        """שמירת הקובץ בשם"""
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "שמירת קובץ",
-            "",
-            "קבצי טקסט (*.txt);;כל הקבצים (*.*)",
-            options=options
-        )
-        
-        if file_path:
-            self.current_file_path = file_path
-            self.save_action()
 
 
 
@@ -3142,7 +2995,6 @@ class MainMenu(QWidget):
         self.replace_colons_and_spaces_window = ReplaceColonsAndSpaces()
         self.replace_colons_and_spaces_window.show()
    
-    # פונקציה לטעינת אייקון ממחרוזת Base64
     def load_icon_from_base64(self, base64_string):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
@@ -3152,17 +3004,12 @@ class MainMenu(QWidget):
     def refresh_after_processing(self):
         """עדכון התצוגה לאחר עיבוד"""
         try:
-            # קריאת התוכן העדכני מהקובץ
             with open(self.current_file_path, 'r', encoding='utf-8') as file:
                 new_content = file.read()
-            
-            # המרה לתצוגה
+
             display_content = new_content.replace('\n', '<br>\n')
-            
-            # עדכון התצוגה
             self.text_display.setHtml(display_content)
-            
-            # קבלת תיאור הפעולה משם החלון האחרון
+
             if self.last_processor_title:
                 action_description = self._get_action_description(self.last_processor_title)
                 # עדכון ההיסטוריה והסטטוס
@@ -3199,19 +3046,16 @@ class MainMenu(QWidget):
             return
             
         try:
-            # קריאת התוכן העדכני
             with open(self.current_file_path, 'r', encoding='utf-8') as file:
                 new_content = file.read()
             
             # המרה לתצוגה
             display_content = new_content.replace('\n', '<br>\n')
             self.text_display.setHtml(display_content)
-            
-            # עדכון ההיסטוריה עם התוכן החדש
+
             action_description = self._get_action_description(self.last_processor_title)
             self._safe_update_history(new_content, action_description)
-            
-            # הדפסת מידע לצורך דיבוג
+
             print(f"עודכן תוכן חדש - תיאור: {action_description}")
             print(f"גודל היסטוריה: {len(self.document_history)}")
             
@@ -3219,7 +3063,7 @@ class MainMenu(QWidget):
             print(f"שגיאה בעדכון התוכן: {str(e)}")
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעדכון התוכן: {str(e)}")
 
-
+ #סנכרון חלונות המשנה עם החלון הראשי
             
     # סקריפט 1 - יצירת כותרות לאוצריא
     def open_create_headers_otzria(self):
@@ -3326,34 +3170,22 @@ class MainMenu(QWidget):
         self.Text_Cleaner_App_window.changes_made.connect(self.update_content_from_child)
         self.Text_Cleaner_App_window.show()
 
-    # סקריפט 12 - נקודותיים ורווח
-    def open_replace_colons_and_spaces(self):
-        if not self.current_file_path:
-            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
-            return
-        self.replace_colons_and_spaces_window = ReplaceColonsAndSpaces()
-        self.replace_colons_and_spaces_window.set_file_path(self.current_file_path)
-        self.replace_colons_and_spaces_window.changes_made.connect(self.update_content_from_child)
-        self.replace_colons_and_spaces_window.show()
         
     #עדכונים
     def check_for_updates(self):
         """בדיקת עדכונים חדשים"""
         self.status_label.setText("בודק עדכונים...")
-        
-        # יצירת אובייקט הבדיקה
+
         self.update_checker = UpdateChecker(self.current_version)
-        
-        # חיבור הסיגנלים לפונקציות המתאימות
+
         self.update_checker.update_available.connect(self.handle_update_available)
         self.update_checker.no_update.connect(self.handle_no_update)
         self.update_checker.error.connect(self.handle_update_error)
-        
-        # התחלת הבדיקה
+
         self.update_checker.start()
 
     def handle_update_available(self, download_url, new_version):
-        """טיפול במקרה שנמצא עדכון"""
+        """טיפול בעידכון"""
         reply = QMessageBox.question(
             self,
             "נמצא עדכון",
@@ -3387,23 +3219,19 @@ class MainMenu(QWidget):
     def download_and_install_update(self, download_url, new_version):
         """הורדת והתקנת העדכון"""
         try:
-            # הורדת הקובץ החדש
             self.status_label.setText("מוריד עדכון...")
             response = requests.get(download_url, stream=True)
             response.raise_for_status()
 
-            # שמירת השם של הקובץ הנוכחי
             current_exe = sys.executable
             backup_exe = current_exe + '.backup'
             new_exe = current_exe + '.new'
 
-            # שמירת הקובץ החדש
             with open(new_exe, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-
-            # יצירת סקריפט עדכון
+             #יצירת קובץ bat לטיפול בעידכון
             update_script = f"""
             @echo off
             timeout /t 1 /nobreak > nul
@@ -3417,7 +3245,6 @@ class MainMenu(QWidget):
             with open(update_bat, 'w') as f:
                 f.write(update_script)
 
-            # הפעלת סקריפט העדכון והפסקת התוכנה
             QMessageBox.information(
                 self,
                 "התקנת עדכון",
@@ -3503,14 +3330,14 @@ class AboutDialog(QDialog):
         
 class DocumentHistory:
     def __init__(self, max_stack_size=100):
-        self.undo_stack = []  # [(content, description), ...]
+        self.undo_stack = []  
         self.redo_stack = []
         self.max_stack_size = max_stack_size
         self.current_content = ""
         self.current_description = "לא בוצעו עדיין פעולות"
 
     def push_state(self, content, description):
-        """הוספת מצב חדש למחסנית"""
+
         if content != self.current_content:
             self.undo_stack.append((self.current_content, self.current_description))
             self.current_content = content
@@ -3546,10 +3373,10 @@ class DocumentHistory:
 #  update
 # ==========================================
 class UpdateChecker(QThread):
-    """מחלקה נפרדת לבדיקת עדכונים כדי לא לתקוע את ממשק המשתמש"""
-    update_available = pyqtSignal(str, str)  # סיגנל שיישלח כשיש עדכון (URL, version)
-    no_update = pyqtSignal()  # סיגנל שיישלח כשאין עדכון
-    error = pyqtSignal(str)  # סיגנל שיישלח במקרה של שגיאה
+    """בדיקת עידכונים"""
+    update_available = pyqtSignal(str, str)  
+    no_update = pyqtSignal()  
+    error = pyqtSignal(str)  
 
     def __init__(self, current_version):
         super().__init__()
@@ -3570,7 +3397,7 @@ class UpdateChecker(QThread):
                 # מצאנו גרסה חדשה יותר
                 download_url = None
                 for asset in latest_release['assets']:
-                    if asset['name'].endswith('.exe'):  # או כל סיומת אחרת שאתה משתמש בה
+                    if asset['name'].endswith('.exe'):  
                         download_url = asset['browser_download_url']
                         break
                 
