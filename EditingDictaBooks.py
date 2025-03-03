@@ -3,28 +3,33 @@ import sys
 import ctypes
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QLabel,
-    QLayout, QFileDialog, QLineEdit, QMessageBox, QComboBox, QHBoxLayout,
+    QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QMainWindow, QProgressBar,
+    QLayout, QFileDialog, QLineEdit, QMessageBox, QComboBox, QHBoxLayout, QProgressDialog,
     QCheckBox, QTextEdit, QDialog, QFrame, QSplitter, QGridLayout, QSpacerItem, QSizePolicy, QApplication
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette, QTextDocument, QFont
+from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette, QTextDocument, QFont, QTextOption
 from PyQt5.QtWinExtras import QtWin
 from PyQt5.QtWidgets import QProxyStyle, QMessageBox, QTreeWidget
 from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer
 from pyluach import gematria
 from bs4 import BeautifulSoup
 from functools import partial
+import subprocess
 import re
 import os
+import ssl
 import requests
+import certifi
 import sys
 import shutil
+
 from packaging import version
 import base64
+from urllib3.util.ssl_ import create_urllib3_context
 import urllib.request
 import traceback
-
+import requests.adapters
 
 
  #פונקצייה גלובלית לטיפול בשגיאות
@@ -643,7 +648,7 @@ class CreateSingleLetterHeaders(QWidget):
         return True
 
     def run_script(self):
-        if not self.current_file_path:
+        if not self.set_file_path:
             self.show_error_message("שגיאה", "אנא בחר קובץ תחילה")
             return
         
@@ -3468,26 +3473,29 @@ class MainMenu(QWidget):
         action_buttons_layout.addWidget(self.redo_button)
         action_buttons_layout.addWidget(self.save_button)
 
-        # תצוגת טקסט
+        # תצוגת טקסט עם כיווניות מימין לשמאל
         self.text_display = QtWidgets.QTextBrowser()
         self.text_display.setReadOnly(True)
-        self.text_display.setLayoutDirection(Qt.RightToLeft)
         
-        # הגדרת העיצוב הבסיסי
+        # הגדרת כיווניות מימין לשמאל
+        self.text_display.setLayoutDirection(Qt.RightToLeft)
+        self.text_display.document().setDefaultTextOption(QTextOption(Qt.AlignRight))
+        self.text_display.textChanged.connect(self.on_text_changed)
+        
+        # הגדרת הגופן הבסיסי
         base_font = QFont("Frank Ruehl CLM", 18)
         self.text_display.setFont(base_font)
         
-        # הגדרת סגנון בסיסי
-        self.text_display.document().setDefaultStyleSheet("""
-            body { line-height: 1.5; }
-            h1 { font-size: 24px; margin: 10px 0; }
-            h2 { font-size: 22px; margin: 10px 0; }
-            h3 { font-size: 20px; margin: 10px 0; }
-            h4 { font-size: 19px; margin: 10px 0; }
-            h5 { font-size: 18px; margin: 10px 0; }
-            h6 { font-size: 18px; margin: 10px 0; }
+        # עיצוב בסיסי של התצוגה
+        self.text_display.setStyleSheet("""
+            QTextBrowser {
+                background-color: transparent;
+                border: 2px solid black;
+                border-radius: 15px;
+                padding: 20px;
+                text-align: right;
+            }
         """)
-        
         # עיצוב המסגרת
         self.text_display.setStyleSheet("""
             QTextBrowser {
@@ -3742,10 +3750,35 @@ class MainMenu(QWidget):
             self.document_history = [(content, "מצב התחלתי")]
             self.current_index = 0
             
-            # המרת ירידות שורה לתגי BR לתצוגה בלבד
-            display_content = content.replace('\n', '<br>\n')
+            display_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="utf-8">
+                    <style>
+                        body {{
+                            margin: 0;
+                            padding: 0;
+                            white-space: pre-wrap;
+                            line-height: 1.5;
+                            text-align: right;
+                            direction: rtl;
+                        }}
+                        
+                        /* עיצוב כותרות */
+                        h1, h2, h3, h4, h5, h6 {{
+                            margin: 10px 0;
+                            text-align: right;
+                            direction: rtl;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    {content}
+                </body>
+                </html>
+            """
             
-            # הצגת התוכן
             self.text_display.setHtml(display_content)
             self.update_buttons_state()
             self.status_label.setText("קובץ נטען בהצלחה")
@@ -3753,93 +3786,53 @@ class MainMenu(QWidget):
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בטעינת הקובץ: {str(e)}")
 
-    def _prepare_content_for_display(self, content):
-        """הכנת התוכן לתצוגה"""
-        # המרת ירידות שורה לתגי BR
-        content = content.replace('\n', '<br>')
-        
-        # יצירת מסמך HTML מינימלי
-        html_content = f"""
-        <html>
-        <head>
-        <meta charset="utf-8">
-        </head>
-        <body dir="rtl">
-        {content}
-        </body>
-        </html>
-        """
-        return html_content
-
     def save_file(self):
         if not self.current_file_path:
             self.save_file_as()
             return
             
         try:
-            # קבלת התוכן המקורי מההיסטוריה אם קיים
+            # שימוש בתוכן המקורי מההיסטוריה אם קיים
             if self.current_index >= 0 and self.current_index < len(self.document_history):
                 content = self.document_history[self.current_index][0]
             else:
-                # אחרת, קבלת התוכן הנוכחי וניקוי
-                content = self.text_display.toHtml()
+                # קבלת התוכן הנוכחי
+                html_content = self.text_display.toHtml()
                 
-                # הסרת כל המטה-דאטה של Qt
-                if '<!DOCTYPE' in content:
-                    body_start = content.find("<body")
-                    body_end = content.find("</body>")
-                    if body_start != -1 and body_end != -1:
-                        content = content[body_start:body_end + 7]
-                
-                # הסרת כל התגיות והמאפיינים של Qt
-                content = re.sub(r'<body[^>]*>', '', content)
-                content = content.replace('</body>', '')
-                content = content.replace('</html>', '')
-                content = re.sub(r' style="[^"]*"', '', content)
-                content = re.sub(r' class="[^"]*"', '', content)
-                content = re.sub(r'<p[^>]*>', '', content)
-                content = content.replace('</p>', '\n')
-                content = re.sub(r'<span[^>]*>', '', content)
-                content = content.replace('</span>', '')
-                
-                # הסרת תגיות BR והמרה לירידות שורה רגילות
-                content = re.sub(r'<br\s*/?>', '\n', content)
-                
-                # ניקוי רווחים וירידות שורה מיותרות
-                content = re.sub(r'\n\s*\n', '\n', content)
-                content = content.strip()
+                # הסרת כל תגי HTML של התצוגה
+                content = self._clean_display_tags(html_content)
             
+            # שמירת הקובץ
             with open(self.current_file_path, 'w', encoding='utf-8') as file:
                 file.write(content)
                 
             self.status_label.setText("הקובץ נשמר בהצלחה")
-            QMessageBox.information(self, "שמירה", "הקובץ נשמר בהצלחה!")
+            
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
 
-    def _clean_html_content(self, content):
-        """ניקוי תגיות HTML מיותרות"""
-        # הסרת ה-DOCTYPE וה-head
-        if '<!DOCTYPE' in content:
-            start = content.find('<body')
-            if start != -1:
-                content = content[start:]
+    def _clean_display_tags(self, html_content):
+        """ניקוי תגי HTML שנוספו לתצוגה בלבד"""
         
-        # הסרת תגיות style מיותרות
-        content = re.sub(r' style="[^"]*"', '', content)
-        content = re.sub(r' class="[^"]*"', '', content)
+        # הסרת תגי מעטפת של התצוגה
+        if '<!DOCTYPE' in html_content:
+            body_start = html_content.find("<body")
+            body_end = html_content.find("</body>")
+            if body_start != -1 and body_end != -1:
+                html_content = html_content[body_start:body_end + 7]
         
-        # הסרת מאפיינים מיותרים
-        content = re.sub(r'<body[^>]*>', '', content)
-        content = content.replace('</body>', '')
-        content = content.replace('</html>', '')
-        content = re.sub(r'<p[^>]*>', '', content)
-        content = content.replace('</p>', '\n')
-        content = re.sub(r'<span[^>]*>', '', content)
-        content = content.replace('</span>', '')
-
+        # הסרת תגיות שנוספו על ידי Qt
+        html_content = re.sub(r'<body[^>]*>', '', html_content)
+        html_content = html_content.replace('</body>', '')
+        html_content = html_content.replace('</html>', '')
+        html_content = re.sub(r'<div[^>]*>', '', html_content)
+        html_content = html_content.replace('</div>', '')
         
-       # המרת HTML entities בחזרה לתווים רגילים
+        # הסרת מאפייני עיצוב שנוספו אוטומטית
+        html_content = re.sub(r' style="[^"]*"', '', html_content)
+        html_content = re.sub(r' class="[^"]*"', '', html_content)
+        
+        # המרת תווים מיוחדים בחזרה
         entities = {
             '&quot;': '"',
             '&amp;': '&',
@@ -3847,17 +3840,22 @@ class MainMenu(QWidget):
             '&gt;': '>',
             '&nbsp;': ' ',
             '&#39;': "'",
-            '&apos;': "'"
+            '&apos;': "'",
         }
+        for entity, char in entities.items():
+            html_content = html_content.replace(entity, char)
         
-        # החלפת BR בירידות שורה
-        content = re.sub(r'<br\s*/?>', '\n', content)
+        # החלפת תגי בר שנוספו אוטומטית בירידות שורה
+        html_content = re.sub(r'<br\s*/?>', '\n', html_content)
+        html_content = re.sub(r'<p\s*/?>', '', html_content)
+        html_content = html_content.replace('</p>', '\n')
         
-        # ניקוי ירידות שורה כפולות
-        content = re.sub(r'\n\s*\n', '\n', content)
-        content = content.strip()
+        # ניקוי רווחים וירידות שורה מיותרות
+        html_content = re.sub(r'\n\s*\n', '\n', html_content)
+        html_content = html_content.strip()
         
-        return content
+        return html_content
+
 
     def edit_text(self):
         """פונקציה לניהול מצב העריכה"""
@@ -3901,10 +3899,78 @@ class MainMenu(QWidget):
         
         self.update_buttons_state()
 
+
+    
     def on_text_changed(self):
         """מטפל בשינויים בטקסט במצב עריכה"""
-        if not self.text_display.isReadOnly():  
-            self.save_button.setEnabled(True)        
+        if not self.text_display.isReadOnly():
+            try:
+                # קריאת התוכן המקורי מההיסטוריה
+                original_content = ""
+                if self.current_index >= 0 and self.current_index < len(self.document_history):
+                    original_content = self.document_history[self.current_index][0]
+
+                # קבלת הטקסט הנוכחי
+                current_content = self.text_display.toHtml()
+                
+                # הסרת רק תגיות Qt ומטה-דאטה
+                cleaned_content = current_content
+                
+                # הסרת תגי מעטפת של התצוגה
+                if '<!DOCTYPE' in cleaned_content:
+                    body_start = cleaned_content.find("<body")
+                    body_end = cleaned_content.find("</body>")
+                    if body_start != -1 and body_end != -1:
+                        cleaned_content = cleaned_content[body_start:body_end + 7]
+                
+                # הסרת תגיות Qt ספציפיות
+                qt_tags_to_remove = [
+                    r'<meta[^>]*>',
+                    r'<style[^>]*>.*?</style>',
+                    r'<head[^>]*>.*?</head>',
+                    r'<!DOCTYPE[^>]*>',
+                    r'<html[^>]*>',
+                    r'</html>'
+                ]
+                
+                for tag in qt_tags_to_remove:
+                    cleaned_content = re.sub(tag, '', cleaned_content, flags=re.DOTALL)
+                
+                # הסרת מאפייני style וclass שהתווספו על ידי Qt
+                cleaned_content = re.sub(r' style="[^"]*"', '', cleaned_content)
+                cleaned_content = re.sub(r' class="[^"]*"', '', cleaned_content)
+                
+                # הסרת תגיות div ו-body
+                cleaned_content = re.sub(r'<body[^>]*>', '', cleaned_content)
+                cleaned_content = cleaned_content.replace('</body>', '')
+                cleaned_content = re.sub(r'<div[^>]*>', '', cleaned_content)
+                cleaned_content = cleaned_content.replace('</div>', '')
+                
+                # המרת BR לירידות שורה
+                cleaned_content = re.sub(r'<br\s*/?>', '\n', cleaned_content)
+                
+                # שמירת השינויים המקוריים של העיצוב
+                for match in re.finditer(r'<([^>]+)>([^<]*)</\1>', original_content):
+                    tag = match.group(1)
+                    if tag in ['font', 'span'] and 'color' in match.group(0):
+                        # שמירה על תגי צבע מהמקור
+                        pattern = re.escape(match.group(0))
+                        if pattern in cleaned_content:
+                            cleaned_content = cleaned_content.replace(pattern, match.group(0))
+                
+                # עדכון ההיסטוריה והקובץ
+                self._safe_update_history(cleaned_content, "עריכה ידנית")
+                
+                try:
+                    with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                        file.write(cleaned_content)
+                except Exception as e:
+                    QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת השינויים: {str(e)}")
+                
+                self.update_buttons_state()
+                
+            except Exception as e:
+                print(f"שגיאה בעדכון הטקסט: {str(e)}")
 
     def process_text(self, processor_widget):
         if not self.current_file_path:
@@ -4249,25 +4315,57 @@ class MainMenu(QWidget):
         return QIcon(pixmap)
     
     #עדכונים
-    def check_for_updates(self, silent=True):
-        """
-        בדיקת עדכונים חדשים
-        :param silent: האם להציג הודעה כשאין עדכונים
-        """
-        self.status_label.setText("בודק עדכונים...")
-        self.update_checker = UpdateChecker(current_version=self.current_version, parent=self)
-
-        # חיבור הסיגנלים עם לכידת הפרמטר silent
-        self.update_checker.update_available.connect(self.handle_update_available)
-        # שימוש ב-partial במקום למבדה
-        self.update_checker.no_update.connect(
-            partial(self.handle_no_update, silent=silent)
-        )
-        self.update_checker.error.connect(
-            partial(self.handle_update_error, silent=silent)
-        )
-
-        self.update_checker.start()
+    def check_for_update_ready(self):
+        """בדיקה אם העדכון מוכן להתקנה"""
+        current_dir = os.path.dirname(sys.executable)
+        marker_file = os.path.join(current_dir, "update_ready.txt")
+        
+        if os.path.exists(marker_file):
+            try:
+                with open(marker_file, "r", encoding="utf-8") as f:
+                    new_version = f.readline().strip()
+                
+                # מחיקת קובץ הסימון
+                os.remove(marker_file)
+                
+                # הפעלת העדכון
+                temp_exe = os.path.join(current_dir, f'new_version_{new_version}.exe')
+                current_exe = sys.executable
+                
+                if os.path.exists(temp_exe):
+                    try:
+                        # שחרור הקובץ הנוכחי מהזיכרון
+                        import win32api
+                        import win32con
+                        import win32gui
+                        
+                        # שליחת הודעת סגירה לכל החלונות של התוכנה
+                        def enum_windows_callback(hwnd, _):
+                            if win32gui.IsWindowVisible(hwnd):
+                                t, w = win32gui.GetWindowText(hwnd), win32gui.GetClassName(hwnd)
+                                if "עריכת ספרי דיקטה" in t:  # או כל שם אחר שמזהה את החלון שלך
+                                    win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+                        
+                        win32gui.EnumWindows(enum_windows_callback, None)
+                        
+                        # המתנה קצרה לסגירת החלונות
+                        time.sleep(1)
+                        
+                        # העתקת הקובץ החדש
+                        shutil.copy2(temp_exe, current_exe)
+                        os.remove(temp_exe)
+                        
+                        # הפעלה מחדש של התוכנה
+                        os.startfile(current_exe)
+                        
+                        # סגירה מסודרת
+                        QApplication.quit()
+                        
+                    except Exception as e:
+                        print(f"שגיאה בהחלפת הקובץ: {e}")
+                        
+            except Exception as e:
+                print(f"שגיאה בהתקנת העדכון: {e}")
 
     def handle_update_available(self, download_url, new_version):
         """טיפול בעידכון"""
@@ -4292,138 +4390,163 @@ class MainMenu(QWidget):
         )
         self.status_label.setText("התוכנה מעודכנת")
 
-    def handle_update_error(self, error_msg):
-        """טיפול בשגיאות בתהליך העדכון"""
-        QMessageBox.warning(
-            self,
-            "שגיאה",
-            error_msg
-        )
-        self.status_label.setText("שגיאה בבדיקת עדכונים")
-
     def download_and_install_update(self, download_url, new_version):
         """הורדת והתקנת העדכון"""
         try:
-            self.status_label.setText("מוריד עדכון...")
-            
-            # קבלת הנתיב המלא של הקובץ הנוכחי
             current_exe = sys.executable
-            current_dir = os.path.dirname(current_exe)
-            backup_exe = os.path.join(current_dir, 'backup.exe')
-            new_exe = os.path.join(current_dir, 'new.exe')
+            updater_path = os.path.join(os.path.dirname(current_exe), 'updater.exe')
             
-            # הורדת הקובץ החדש
-            response = requests.get(download_url, stream=True)
-            response.raise_for_status()
-            
-            with open(new_exe, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    if chunk:
-                        f.write(chunk)
+            # בדיקה והורדת תוכנת העדכון אם לא קיימת
+            if not os.path.exists(updater_path):
+                try:
+                    # קישור להורדת תוכנת העדכון
+                    updater_url = "https://mitmachim.top/assets/uploads/files/1741025551359-updater.exe"
+                    
+                    # שימוש באותה תעודת נטפרי שכבר הוגדרה ב-UpdateChecker
+                    netfree_cert = self.update_checker.netfree_cert if hasattr(self.update_checker, 'netfree_cert') else None
+                    
+                    # יצירת חלון העדכון המעוצב
+                    updater_window = QMainWindow(self)
+                    updater_window.setWindowTitle("הורדת תוכנת עדכון")
+                    updater_window.setFixedWidth(600)
+                    updater_window.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
+                    updater_window.setLayoutDirection(Qt.RightToLeft)
 
-            # קבלת ה-PID של התהליך הנוכחי
-            current_pid = os.getpid()
-            
-            # יצירת סקריפט העדכון עם תמיכה בעברית
-            update_script = f'''@echo off
-chcp 65001 > nul
-title עדכון תוכנת עריכת ספרי דיקטה
+                    # מיקום החלון במרכז החלון ההורה
+                    parent_center = self.mapToGlobal(self.rect().center())
+                    updater_window.move(
+                        parent_center.x() - updater_window.width() // 2,
+                        parent_center.y() - 150 // 2
+                    )
 
-echo ============================================
-echo              תהליך העדכון החל
-echo ============================================
+                    # יצירת הממשק
+                    central_widget = QWidget()
+                    updater_window.setCentralWidget(central_widget)
+                    
+                    layout = QVBoxLayout()
+                    layout.setContentsMargins(15, 15, 15, 15)
+                    layout.setSpacing(15)
 
-echo [*] ממתין לסגירת התוכנה...
+                    # כותרת ראשית
+                    main_status = QLabel("מוריד את תוכנת העדכון...")
+                    main_status.setStyleSheet("""
+                        QLabel {
+                            color: #1a365d;
+                            font-family: "Segoe UI", Arial;
+                            font-size: 16px;
+                            font-weight: bold;
+                            padding: 10px;
+                        }
+                    """)
+                    main_status.setAlignment(Qt.AlignCenter)
+                    layout.addWidget(main_status)
 
-:CHECK_PROCESS
-tasklist /FI "PID eq {current_pid}" 2>NUL | find /I "{current_pid}" > NUL
-if %ERRORLEVEL% == 0 (
-    timeout /t 1 /nobreak > nul
-    goto CHECK_PROCESS
-)
+                    # פירוט המשימה הנוכחית
+                    detail_status = QLabel("מתחבר לשרת...")
+                    detail_status.setStyleSheet("""
+                        QLabel {
+                            color: #666666;
+                            font-family: "Segoe UI", Arial;
+                            font-size: 12px;
+                            padding: 5px;
+                        }
+                    """)
+                    detail_status.setAlignment(Qt.AlignCenter)
+                    detail_status.setWordWrap(True)
+                    layout.addWidget(detail_status)
 
-:: המתנה נוספת לוודא שהתהליך נסגר לגמרי
-timeout /t 2 /nobreak > nul
+                    # סרגל התקדמות
+                    progress_bar = QProgressBar()
+                    progress_bar.setStyleSheet("""
+                        QProgressBar {
+                            border: 2px solid #2b4c7e;
+                            border-radius: 15px;
+                            padding: 5px;
+                            text-align: center;
+                            background-color: white;
+                            height: 30px;
+                        }
+                        QProgressBar::chunk {
+                            background-color: #4CAF50;
+                            border-radius: 13px;
+                        }
+                    """)
+                    layout.addWidget(progress_bar)
 
-echo.
-echo [*] מגבה את הגרסה הקודמת...
-if exist "{backup_exe}" (
-    del "{backup_exe}" > nul 2>&1
-)
-move /Y "{current_exe}" "{backup_exe}" > nul 2>&1
-if errorlevel 1 (
-    echo [!] שגיאה: לא ניתן לגבות את הקובץ הקיים
-    echo [!] נא לוודא שיש הרשאות מתאימות
-    echo.
-    pause
-    exit /b 1
-)
+                    central_widget.setLayout(layout)
+                    updater_window.show()
 
-echo.
-echo [*] מתקין את הגרסה החדשה...
-move /Y "{new_exe}" "{current_exe}" > nul 2>&1
-if errorlevel 1 (
-    echo [!] שגיאה: לא ניתן להתקין את הגרסה החדשה
-    echo [*] משחזר את הגרסה הקודמת...
-    move /Y "{backup_exe}" "{current_exe}" > nul 2>&1
-    echo.
-    pause
-    exit /b 1
-)
+                    # הורדת הקובץ
+                    response = requests.get(
+                        updater_url,
+                        verify=netfree_cert if netfree_cert and os.path.exists(netfree_cert) else True,
+                        stream=True
+                    )
+                    response.raise_for_status()
+                    
+                    # חישוב גודל הקובץ
+                    total_size = int(response.headers.get('content-length', 0))
+                    block_size = 8192
+                    downloaded = 0
+                    
+                    # הורדה עם עדכון התקדמות
+                    with open(updater_path, 'wb') as f:
+                        for data in response.iter_content(block_size):
+                            downloaded += len(data)
+                            f.write(data)
+                            progress = int((downloaded / total_size) * 100) if total_size > 0 else 0
+                            progress_bar.setValue(progress)
+                            
+                            # עדכון תיאור ההתקדמות
+                            downloaded_mb = downloaded / (1024 * 1024)
+                            total_mb = total_size / (1024 * 1024)
+                            detail_status.setText(
+                                f"מוריד: {downloaded_mb:.1f}MB מתוך {total_mb:.1f}MB"
+                            )
+                            
+                            QApplication.processEvents()
+                    
+                    # סגירת חלון ההורדה
+                    updater_window.close()
+                    
+                except Exception as e:
+                    QMessageBox.critical(
+                        self,
+                        "שגיאה בהורדת תוכנת העדכון",
+                        f"לא ניתן להוריד את תוכנת העדכון:\n{str(e)}"
+                    )
+                    self.status_label.setText("שגיאה בהורדת תוכנת העדכון")
+                    return
 
-echo.
-echo [*] מפעיל את הגרסה החדשה...
-start "" "{current_exe}"
+            # עדכון התווית בחלון הראשי
+            self.status_label.setText("מתחיל בתהליך העדכון...")
 
-echo.
-echo [*] העדכון הושלם בהצלחה!
-echo ============================================
-
-timeout /t 3 /nobreak > nul
-del "%~f0"
-exit
-'''
-            
-            # שמירת סקריפט העדכון בקידוד UTF-8
-            update_bat = os.path.join(current_dir, 'update.bat')
-            with open(update_bat, 'w', encoding='utf-8-sig') as f:
-                f.write(update_script)
-            
-            # הודעה למשתמש
-            QMessageBox.information(
-                self,
-                "התקנת עדכון",
-                "העדכון ירד בהצלחה. התוכנה תיסגר כעת ותופעל מחדש עם הגרסה החדשה."
-            )
-            
-            # הפעלת סקריפט העדכון
+            # הפעלת תוכנת העדכון עם הרשאות מנהל - ללא סגירת התוכנה הנוכחית
             if sys.platform == 'win32':
                 import ctypes
                 if ctypes.windll.shell32.IsUserAnAdmin():
-                    subprocess.Popen(['cmd.exe', '/c', update_bat], 
-                                   creationflags=subprocess.CREATE_NEW_CONSOLE)
+                    subprocess.Popen([updater_path, download_url, current_exe, new_version])
                 else:
                     ctypes.windll.shell32.ShellExecuteW(
                         None, 
                         "runas", 
-                        "cmd.exe", 
-                        f"/c {update_bat}", 
-                        None, 
+                        updater_path,
+                        f"{download_url} {current_exe} {new_version}",
+                        None,
                         1
                     )
-            
-            # סגירת התוכנה
-            sys.exit()
+                
+                # עדכון התווית בחלון הראשי
+                self.status_label.setText("מתבצע עדכון ברקע...")
             
         except Exception as e:
             QMessageBox.critical(
                 self,
                 "שגיאה",
-                f"שגיאה בהורדת העדכון: {str(e)}"
+                f"שגיאה בהפעלת תהליך העדכון: {str(e)}"
             )
             self.status_label.setText("שגיאה בהורדת העדכון")
-
-
+            
 class AboutDialog(QDialog):
     """חלון 'אודות'"""
     def __init__(self, parent=None):
@@ -4615,50 +4738,86 @@ class UpdateChecker(QThread):
     no_update = pyqtSignal()  
     error = pyqtSignal(str)  
 
-    def __init__(self, current_version, parent=None):  # הוספת parent=None
-        super().__init__(parent)  # העברת parent ל-QThread
+    def __init__(self, current_version, parent=None):
+        super().__init__(parent)
         self.current_version = current_version
-        self.headers = {'Accept': 'application/vnd.github.v3+json'}
+        self.headers = {
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'EditingDictaBooks-UpdateChecker'
+        }
 
-        
-    def _compare_versions(self, latest_version, current_version):
-        """
-        השוואת גרסאות
-        :param latest_version: הגרסה האחרונה מ-GitHub
-        :param current_version: הגרסה הנוכחית של התוכנה
-        :return: True אם יש גרסה חדשה, False אם לא
-        """
+        # קביעת נתיב קבוע לתעודת נטפרי
+        self.setup_netfree_cert()
+
+    def setup_netfree_cert(self):
+        """הגדרת תעודת נטפרי בנתיב קבוע"""
         try:
-            # ניקוי התחילית V או v מהגרסאות
-            latest_version = latest_version.upper().strip('V')
-            current_version = current_version.upper().strip('V')
+            # יצירת תיקיית נטפרי קבועה ב-C: אם לא קיימת
+            netfree_dir = r"C:\netfree"
+            if not os.path.exists(netfree_dir):
+                os.makedirs(netfree_dir)
             
-            latest_parts = latest_version.split('.')
-            current_parts = current_version.split('.')
+            # נתיב קבוע לתעודת נטפרי
+            self.netfree_cert = os.path.join(netfree_dir, 'netfree.crt')
             
-            # השלמת חלקים חסרים עם אפסים
-            while len(latest_parts) < 3:
-                latest_parts.append('0')
-            while len(current_parts) < 3:
-                current_parts.append('0')
+            # בדיקה אם התעודה קיימת וריקה
+            if not os.path.exists(self.netfree_cert) or os.path.getsize(self.netfree_cert) == 0:
+                help_message = f"""
+תעודת האבטחה של נטפרי חסרה או ריקה.
+נא לבצע את הפעולות הבאות:
+
+1. הורד את תעודת נטפרי מהאתר הרשמי
+2. העתק את התעודה לנתיב הבא:
+   {self.netfree_cert}
+3. הפעל מחדש את התוכנה
+
+שים לב: אין צורך לבצע פעולה זו שוב בעתיד, התעודה תישמר בנתיב הקבוע.
+"""
+                print(help_message)
+                # יצירת קובץ ריק אם לא קיים
+                with open(self.netfree_cert, 'a') as f:
+                    pass
             
-            # המרה למספרים והשוואה
-            latest_nums = [int(x) for x in latest_parts]
-            current_nums = [int(x) for x in current_parts]
+            # הגדרת משתני הסביבה
+            os.environ['REQUESTS_CA_BUNDLE'] = self.netfree_cert
+            os.environ['SSL_CERT_FILE'] = self.netfree_cert
             
-            return latest_nums > current_nums
+            # החלפת פונקציית התעודות של requests
+            def custom_where():
+                return self.netfree_cert
+            
+            requests.certs.where = custom_where
+            
+            print(f"משתמש בתעודת SSL מ: {self.netfree_cert}")
             
         except Exception as e:
-            print(f"שגיאה בהשוואת גרסאות: {str(e)}")
-            return False
+            print(f"שגיאה בהגדרת תעודת SSL: {e}")
+            if "Access is denied" in str(e):
+                self.error.emit(
+                    "אין הרשאות ליצור את תיקיית התעודות.\n"
+                    "נא להפעיל את התוכנה כמנהל מערכת (Run as Administrator)"
+                )
+
     def run(self):
         try:
-            # קבלת המידע על הגרסה האחרונה מ-GitHub API
+            api_url = "https://api.github.com/repos/YOSEFTT/EditingDictaBooks/releases/latest"
+            
+            print("מנסה להתחבר לשרת GitHub...")
+            print(f"URL: {api_url}")
+            
+            # בדיקה אם קובץ התעודה ריק
+            if os.path.getsize(self.netfree_cert) == 0:
+                raise requests.exceptions.SSLError(
+                    "קובץ תעודת האבטחה ריק. נא להעתיק את תעודת נטפרי לקובץ"
+                )
+            
             response = requests.get(
-                "https://api.github.com/repos/YOSEFTT/EditingDictaBooks/releases/latest",
+                api_url,
                 headers=self.headers,
-                timeout=10
+                timeout=30,
+                verify=self.netfree_cert
             )
+            
             response.raise_for_status()
             
             latest_release = response.json()
@@ -4667,9 +4826,7 @@ class UpdateChecker(QThread):
             print(f"גרסה נוכחית: {self.current_version}")
             print(f"גרסה אחרונה: {latest_version}")
             
-            # בדיקה אם יש גרסה חדשה
             if self._compare_versions(latest_version, self.current_version):
-                # חיפוש קובץ ההורדה המתאים
                 download_url = None
                 for asset in latest_release['assets']:
                     if asset['name'].lower().endswith('.exe'):
@@ -4684,19 +4841,64 @@ class UpdateChecker(QThread):
             else:
                 print("אין גרסה חדשה")
                 self.no_update.emit()
-        
-        except requests.exceptions.RequestException as e:
-            self.error.emit(f"שגיאה בתקשורת עם שרת GitHub: {str(e)}")
-        except Exception as e:
-            self.error.emit(f"שגיאה בבדיקת עדכונים: {str(e)}")
+                
+        except requests.exceptions.SSLError as e:
+            error_message = str(e)
+            print(f"SSL Error details: {error_message}")
+            
+            help_message = f"""
+שגיאת SSL בתקשורת עם שרת GitHub. 
+נא לבצע את הפעולות הבאות:
 
-   
+1. הורד את תעודת נטפרי מהאתר הרשמי
+2. העתק את התעודה לנתיב הבא:
+   {self.netfree_cert}
+3. הפעל מחדש את התוכנה
+
+הערה: התעודה תישמר בנתיב קבוע ואין צורך להעתיק אותה שוב בעתיד.
+"""
+            self.error.emit(help_message)
+                
+        except requests.exceptions.ConnectionError as e:
+            print(f"Connection Error: {str(e)}")
+            self.error.emit("בעיית חיבור לשרת GitHub. אנא בדוק את חיבור האינטרנט שלך")
+            
+        except Exception as e:
+            print(f"General Error: {str(e)}")
+            self.error.emit(f"שגיאה כללית: {str(e)}")
+
+    def _compare_versions(self, latest_version, current_version):
+        """
+        השוואת גרסאות
+        """
+        try:
+            latest_version = latest_version.upper().strip('V')
+            current_version = current_version.upper().strip('V')
+            
+            latest_parts = latest_version.split('.')
+            current_parts = current_version.split('.')
+            
+            while len(latest_parts) < 3:
+                latest_parts.append('0')
+            while len(current_parts) < 3:
+                current_parts.append('0')
+            
+            latest_nums = [int(x) for x in latest_parts]
+            current_nums = [int(x) for x in current_parts]
+            
+            return latest_nums > current_nums
+            
+        except Exception as e:
+            print(f"שגיאה בהשוואת גרסאות: {str(e)}")
+            return False
+        print(os.path.abspath(self.netfree_cert))
 # ==========================================
 # Main Application
 # ==========================================
 def main():
     if sys.platform == 'win32':
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+
 
     app = QApplication.instance()
     if not app:
