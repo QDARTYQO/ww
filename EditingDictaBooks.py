@@ -8,12 +8,13 @@ from PyQt5.QtWidgets import (
     QCheckBox, QTextEdit, QDialog, QFrame, QSplitter, QGridLayout, QSpacerItem, QSizePolicy, QApplication
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette
+from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette, QTextDocument, QFont
 from PyQt5.QtWinExtras import QtWin
 from PyQt5.QtWidgets import QProxyStyle, QMessageBox, QTreeWidget
 from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer
 from pyluach import gematria
 from bs4 import BeautifulSoup
+from functools import partial
 import re
 import os
 import requests
@@ -63,10 +64,10 @@ myappid = 'MIT.LEARN_PYQT.dictatootzaria'
 # מחרוזת Base64 של האייקון (החלף את זה עם המחרוזת שתקבל אחרי המרת הקובץ שלך ל־Base64)
 icon_base64 = "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"
 
- #מחלקה לטעינת קבצים
+#מחלקה לטעינת קבצים
 class FileLoader(QThread):
     """מחלקה לטעינת קבצים ברקע"""
-    finished = pyqtSignal(dict)  # שולח מילון עם התוצאות
+    finished = pyqtSignal(dict) 
 
     def __init__(self, file_path):
         super().__init__()
@@ -91,109 +92,7 @@ class FileLoader(QThread):
         finally:
             self.finished.emit(result)
 
-class DefaultTextContent:
-    """מחלקה המכילה את טקסט ברירת המחדל לתצוגה ראשונית"""
-    
-    @staticmethod
-    def get_default_html():
-        return """<h1>עריכת ספר באוצריא</h1>
-הסבר כיצד ניתן 'לערוך' את הטקסט כדי שיופיע בתוכנה כאילו הוא טקסט ערוך.
-אנו צריכים להוסיף לטקסט לפני ואחרי המילה (או המילים) שאותם אנו רוצים לערוך, את הסימנים: < >, וביניהם אותיות מסוימות באנגלית [הנקראים תגי HTML, ותגי CSS], ובתג שאחרי המילה (או המילים) יש להוסיף גם קו נטוי בתוך התג לפני האותיות באנגלית [/].
-התג הראשון מגדיר לתוכנה להתחיל להפעיל את צורת העריכה הכתובה בו, והתג האחרון מורה לתוכנה שעד כאן יש להפעיל זאת. הראשון נקרא תג פותח, והשני תג סוגר.
-על מנת להבין איך יוצרים את כל סוגי האפשרויות האלו, יש לפתוח קובץ זה דרך קורא טקסטים כגון פנקס רשימות או וורד וכדומה וכך ניתן לראות את התגים.
-מומלץ מאוד לאחר פתיחת קובץ זה ע"י עורך טקסט, ללחוץ על צירוף המקשים: Ctrl+Shift [קונטרול+שיפט] השמאליים במקלדת,  כדי ליישר את הטקסט לצד שמאל, כך ניתן להבין טוב יותר את צורת כתיבת התגים האלו. בכל עת ניתן להחזיר לצד ימין ע"י לחיצה על צירוף המקשים האלו שבצד ימין של המקלדת.
-שימו לב! בכתיבת תג פותח בלי תג סוגר, התוכנה תמשיך את העריכה על כל הקטע עד ירידת השורה הבאה [ע"י Enter או Shift+Enter (אנטר או שיפט+אנטר)]. 
-באם נכתב תג סוגר, הטקסט שנכתב מכאן ואילך גם אם הוא באותו קטע לא יוחל עליו ההגדרות הקודמות. יוצאים מכלל זה הם תגי הכותרות שמוחלות באופן אוטומטי על כל הפיסקה, גם אם נכתב באמצעה תג סוגר.
-בכל פיסקה [ירידת שורה ע"י אנטר או שיפט+אנטר] יש לכתוב מחדש את התגים שברצונכם להפעיל בקטע זה.
 
-<h1>כותרת רמה 1 [תמיד זה שם הספר, בשורה הראשונה]</h1>
-<h2>כותרת רמה 2</h2>
-<h3>כותרת רמה 3</h3>
-<h4>כותרת רמה 4</h4>
-<h5>כותרת רמה 5</h5>
-<h6>כותרת רמה 6</h6>
-שימו לב! כותרות ברמה 7 ומעלה, לא נתמכות.
-
-<h2>הדגשה</h2>
-<b>הדגשה</b>
-<strong>צורה נוספת</strong>
-
-<h2>גודל כתב</h2>
-<big>כתב גדול</big> 
-<big><big>כתב גדול מאוד</big></big>
-<small>כתב קטן</small>
-<small><small>כתב קטן מאוד</small></small>
-[הסבר] להגדלת והקטנת גודל גופן מותאמת אישית יש לכתוב את התגים האלו לפני ואחרי הטקסט הרצוי.
-<span style="font-size:150%;">הגדלת הכתב ל 150%</span>
-<span style="font-size:70%;">הקטנת הכתב ל 70%</span>
-<span style="font-size:50%;">הקטנת הכתב ל 50%</span>
-
-<h2>כתב נטוי</h2>
-<i>כתב נטוי</i>
-
-<h2>סוג גופן</h2>
-[הסבר] לבחירת גופן מסוים [ניתן לבחור גם גופן שלא נמצא ברשימת הגופנים בהגדרות התוכנה], יש לכתוב את התגים האלו לפני ואחרי הטקסט הרצוי.
-<span style="font-family: SBL Hebrew;">כתב אחר</span>
-<span style="font-family: Arial;">אריאל</span>
-<span style="font-family: FrankRuehl;">פרנקריל</span>
-<span style="font-family: Hadassah Friedlaender;">הדסה</span>
-<span style="font-family: Narkisim;">נרקיסים</span>
-<span style="font-family: Guttman Mantova;">מנטובה</span>
-<span style="font-family: David;">דוד</span>
-<span style="font-family: Guttman Logo1;">גוטמן</span>
-
-<h2>צבע גופן</h2>
-[הסבר] לבחירת צבע מסוים שבו יוצג הטקסט, יש להקליד את התגים האלו לפני ואחרי הטקסט הרצוי, כמובן ניתן לבחור כל סוג של צבע, יש לכתוב את שם הצבע באנגלית, לצבעים בסיסיים, או את קוד הצבע.
-<span style="color:Black;">כאן לדוגמא נבחר הצבע השחור (ברירת מחדל, גם בלי לכתוב סוג צבע)</span>
-<span style="color:Gray;">כאן לדוגמא נבחר הצבע האפור</span>
-<span style="color:Blue;">כאן לדוגמא נבחר הצבע הכחול</span>
-<span style="color:LightBlue;">כאן לדוגמא נבחר הצבע התכלת</span>
-<span style="color:Green;">כאן לדוגמא נבחר הצבע הירוק</span>
-<span style="color:LightGreen;">כאן לדוגמא נבחר הצבע הירוק בהיר</span>
-<span style="color:Aqua;">כאן לדוגמא נבחר הצבע הטורקיז</span>
-<span style="color:Red;">כאן לדוגמא נבחר הצבע האדום</span>
-<span style="color:Purple;">כאן לדוגמא נבחר הצבע הסגול</span>
-<span style="color:Yellow;">כאן לדוגמא נבחר הצבע הצהוב</span>
-<span style="color:Lightyellow;">כאן לדוגמא נבחר הצבע הצהוב בהיר</span>
-<span style="color:White;">כאן לדוגמא נבחר הצבע הלבן</span>
-בחירת צבעים לפי קוד [ע"י קוד ניתן לבחור מגוון רחב מאוד של צבעים ותתי צבעים].
-<span style="color:#00FF00;">כאן לדוגמא נבחר צבע ירוק זורח</span>
-<span style="color:#2828AC;">כאן לדוגמא נבחר הצבע כחול כהה</span>
-<span style="color:#F0E68C;">כאן לדוגמא נבחר הצבע הכתום</span>
-
-<h2>יצירת מספר סוגי תגים ביחד</h2>
-<span style="font-size:130%; font-family: SBL Hebrew; color:Red;">בחירת גופן והגדלת כתב ושינוי צבע ביחד</span>
-[הסבר] אין הבדל בסדר הכתיבה מה רושמים קודם, את תגי סוג הגופן או הגודל או הצבע וכדו'.
-
-<h2>הערות שוליים</h2>
-בגוף הטקסט שבו רוצים לרשום את ההערה יש לרשום את התגים האלו<sup>2</sup> וביניהם את מספר ההערה<sup>1</sup>.
-לאחר סוף הקטע יש לכתוב כך: 
-<small><sup>1</sup> גוף ההערה</small>
-<small><sup>2</sup> גוף ההערה</small>
-כדי שמספר ההערה יכתב בצבע תכלת וכן עם קו מתחתיו [כמו קישור] נכתוב כך: [שים לב, קישורים עצמם אינם עובדים באוצריא, זה רק מראה של קישור].
-הטקסט בגוף הספר<a href><sup>1</sup></a>.
-<small><a href><sup>1</sup></a> גוף ההערה</small>
-<small><a href><sup>2</sup></a> גוף ההערה</small>
-
-<h2>סימנים נוספים</h2>
-תו ר"ת הפוך &#8220;
-תו חזור אחורה &#8617
-תו חזור אחורה בצבע תכלת עם קו מתחתיו [כמו קישור] <a href>&#8617</a>"""
-
-    @staticmethod
-    def get_default_style():
-        """מחזיר את הסגנון עבור תיבת הטקסט"""
-        return """
-            QTextEdit {
-                color: #1a365d;
-                font-family: "Segoe UI", Arial;
-                font-size: 14px;
-                padding: 20px;
-                background-color: white;
-                border: 2px solid #2b4c7e;
-                border-radius: 15px;
-            }
-        """           
 # ==========================================
 # Script 1: יצירת כותרות לאוצריא
 # ==========================================
@@ -225,7 +124,6 @@ class CreateHeadersOtZria(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר למשתמש - בחלק העליון עם גוון אדום
         explanation = QLabel(
             "שים לב!\n\n"
             "בתיבת 'מילה לחפש' יש לבחור או להקליד את המילה בה אנו רוצים שתתחיל הכותרת.\n"
@@ -249,7 +147,7 @@ class CreateHeadersOtZria(QWidget):
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # עיצוב משותף לתוויות
+
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -259,7 +157,6 @@ class CreateHeadersOtZria(QWidget):
             }
         """
 
-        # עיצוב משותף לקומבו-בוקסים
         combo_style = """
             QComboBox {
                 border: 2px solid #2b4c7e;
@@ -358,7 +255,7 @@ class CreateHeadersOtZria(QWidget):
         button_container.addStretch(1)
         layout.addLayout(button_container)
 
-        # מרווח גמיש בתחתית
+
         layout.addStretch()
 
         self.setLayout(layout)
@@ -369,7 +266,7 @@ class CreateHeadersOtZria(QWidget):
 
     def show_custom_message(self, title, message_parts, window_size=("560x330")):
         msg = QMessageBox(self)
-        msg.setStyleSheet(GLOBAL_STYLE)  # הוספת הסגנון הגלובלי
+        msg.setStyleSheet(GLOBAL_STYLE)  
         msg.setWindowTitle(title)
         msg.setIcon(QMessageBox.Information)
 
@@ -527,7 +424,6 @@ class CreateSingleLetterHeaders(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר למשתמש בחלק העליון
         explanation = QLabel(
             "שים לב!\n\n"
             "הבחירה בברירת מחדל [השורה הריקה], משמעותה סימון כל האפשרויות."
@@ -548,7 +444,6 @@ class CreateSingleLetterHeaders(QWidget):
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # עיצוב משותף לתוויות
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -558,7 +453,6 @@ class CreateSingleLetterHeaders(QWidget):
             }
         """
 
-        # עיצוב משותף לקומבו-בוקסים
         combo_style = """
             QComboBox {
                 border: 2px solid #2b4c7e;
@@ -582,7 +476,6 @@ class CreateSingleLetterHeaders(QWidget):
             }
         """
 
-        # עיצוב משותף לתיבות טקסט
         entry_style = """
             QLineEdit {
                 border: 2px solid #2b4c7e;
@@ -597,8 +490,7 @@ class CreateSingleLetterHeaders(QWidget):
 
         # תו בתחילת וסוף האות + רמת כותרת באותה שורה
         chars_container = QHBoxLayout()
-        
-        # קונטיינר לתו התחלה
+
         start_container = QVBoxLayout()
         start_label = QLabel("תו בתחילת האות:")
         start_label.setStyleSheet(label_style)
@@ -609,7 +501,7 @@ class CreateSingleLetterHeaders(QWidget):
         start_container.addWidget(start_label, alignment=Qt.AlignCenter)
         start_container.addWidget(self.start_var, alignment=Qt.AlignCenter)
         
-        # קונטיינר לתו סוף
+
         end_container = QVBoxLayout()
         end_label = QLabel("תו/ים בסוף האות:")
         end_label.setStyleSheet(label_style)
@@ -620,7 +512,7 @@ class CreateSingleLetterHeaders(QWidget):
         end_container.addWidget(end_label, alignment=Qt.AlignCenter)
         end_container.addWidget(self.finde_var, alignment=Qt.AlignCenter)
         
-        # קונטיינר לרמת כותרת
+
         heading_container = QVBoxLayout()
         heading_label = QLabel("רמת כותרת:")
         heading_label.setStyleSheet(label_style)
@@ -632,7 +524,7 @@ class CreateSingleLetterHeaders(QWidget):
         heading_container.addWidget(heading_label, alignment=Qt.AlignCenter)
         heading_container.addWidget(self.level_var, alignment=Qt.AlignCenter)
 
-        # הוספת מרווחים גמישים בין האלמנטים
+
         chars_container.addStretch(1)
         chars_container.addLayout(start_container)
         chars_container.addStretch(1)
@@ -842,13 +734,13 @@ class AddPageNumberToHeading(QWidget):
         self.file_path = ""
         self.setWindowTitle("הוספת מספר עמוד בכותרת הדף")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 600, 500)  # גודל חלון גדול יותר
+        self.setGeometry(100, 100, 600, 500)  
         self.setLayoutDirection(Qt.RightToLeft)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)  # מרווחים מהשוליים
+        layout.setContentsMargins(20, 20, 20, 20) 
 
         # הסבר למשתמש
         explanation = QLabel(
@@ -1024,7 +916,6 @@ class ChangeHeadingLevel(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר למשתמש - עכשיו בחלק העליון עם גוון אדום
         explanation = QLabel(
             "שים לב!\n"
             "הכותרות יוחלפו מרמה נוכחית לרמה החדשה.\n"
@@ -1046,7 +937,6 @@ class ChangeHeadingLevel(QWidget):
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # עיצוב משותף לתוויות
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -1056,7 +946,6 @@ class ChangeHeadingLevel(QWidget):
             }
         """
 
-        # עיצוב משותף לקומבו-בוקסים
         combo_style = """
             QComboBox {
                 border: 2px solid #2b4c7e;
@@ -1081,7 +970,7 @@ class ChangeHeadingLevel(QWidget):
             }
         """
 
-        # רמת כותרת נוכחית - עכשיו בסידור אנכי
+ 
         current_level_container = QVBoxLayout()
         current_level_label = QLabel("רמת כותרת נוכחית:")
         current_level_label.setStyleSheet(label_style)
@@ -1095,7 +984,7 @@ class ChangeHeadingLevel(QWidget):
         current_level_container.addWidget(self.current_level_var, alignment=Qt.AlignCenter)
         layout.addLayout(current_level_container)
 
-        # רמת כותרת חדשה - עכשיו בסידור אנכי
+
         new_level_container = QVBoxLayout()
         new_level_label = QLabel("רמת כותרת חדשה:")
         new_level_label.setStyleSheet(label_style)
@@ -1138,7 +1027,7 @@ class ChangeHeadingLevel(QWidget):
         button_container.addStretch(1)
         layout.addLayout(button_container)
 
-        # מרווח גמיש בתחתית
+
         layout.addStretch()
 
         self.setLayout(layout)
@@ -1177,7 +1066,7 @@ class ChangeHeadingLevel(QWidget):
                     "!מזל טוב", 
                     f"בוצעו {changes_count} החלפות בהצלחה!"
                 )
-                self.changes_made.emit()  # שליחת סיגנל על שינויים
+                self.changes_made.emit() 
             else:
                 QMessageBox.information(
                     self, 
@@ -1257,7 +1146,7 @@ class EmphasizeAndPunctuate(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר למשתמש בחלק העליון - בירוק בהיר
+
         explanation = QLabel(
             "הסבר:\n\n"
             "• הדגשת תחילת קטעים: מדגיש את המילה הראשונה בקטעים\n"
@@ -1279,7 +1168,6 @@ class EmphasizeAndPunctuate(QWidget):
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # עיצוב משותף לתוויות
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -1289,7 +1177,7 @@ class EmphasizeAndPunctuate(QWidget):
             }
         """
 
-        # עיצוב משותף לקומבו-בוקסים
+
         combo_style = """
             QComboBox {
                 border: 2px solid #2b4c7e;
@@ -1313,7 +1201,6 @@ class EmphasizeAndPunctuate(QWidget):
             }
         """
 
-        # בחירה להוספת נקודה או נקודותיים
         ending_container = QVBoxLayout()
         ending_label = QLabel("בחר פעולה לסוף קטע:")
         ending_label.setStyleSheet(label_style)
@@ -1373,7 +1260,7 @@ class EmphasizeAndPunctuate(QWidget):
         button_container.addStretch(1)
         layout.addLayout(button_container)
 
-        # מרווח גמיש בתחתית
+
         layout.addStretch()
 
         self.setLayout(layout)
@@ -1508,7 +1395,6 @@ class CreatePageBHeaders(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר למשתמש בחלק העליון - בירוק בהיר
         explanation = QLabel(
             "הסבר:\n\n"
             "• התוכנה תוסיף כותרת 'עמוד ב' לפני קטעים ללא כותרת\n"
@@ -1530,7 +1416,6 @@ class CreatePageBHeaders(QWidget):
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # עיצוב משותף לתוויות
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -1540,7 +1425,6 @@ class CreatePageBHeaders(QWidget):
             }
         """
 
-        # עיצוב משותף לקומבו-בוקסים
         combo_style = """
             QComboBox {
                 border: 2px solid #2b4c7e;
@@ -1564,10 +1448,9 @@ class CreatePageBHeaders(QWidget):
             }
         """
 
-        # סוג כותרת ורמת כותרת באותה שורה
         headers_container = QHBoxLayout()
 
-        # קונטיינר לסוג כותרת
+
         header_type_container = QVBoxLayout()
         header_type_label = QLabel("סוג כותרת:")
         header_type_label.setStyleSheet(label_style)
@@ -1586,7 +1469,7 @@ class CreatePageBHeaders(QWidget):
         header_type_container.addWidget(header_type_label, alignment=Qt.AlignCenter)
         header_type_container.addWidget(self.header_type_var, alignment=Qt.AlignCenter)
 
-        # קונטיינר לרמת כותרת
+
         level_container = QVBoxLayout()
         level_label = QLabel("רמת כותרת:")
         level_label.setStyleSheet(label_style)
@@ -1600,7 +1483,6 @@ class CreatePageBHeaders(QWidget):
         level_container.addWidget(level_label, alignment=Qt.AlignCenter)
         level_container.addWidget(self.level_var, alignment=Qt.AlignCenter)
 
-        # הוספת מרווחים גמישים בין האלמנטים
         headers_container.addStretch(1)
         headers_container.addLayout(header_type_container)
         headers_container.addStretch(1)
@@ -1638,7 +1520,7 @@ class CreatePageBHeaders(QWidget):
         button_container.addStretch(1)
         layout.addLayout(button_container)
 
-        # מרווח גמיש בתחתית
+
         layout.addStretch()
 
         self.setLayout(layout)
@@ -1742,6 +1624,7 @@ class CreatePageBHeaders(QWidget):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
+    
 # ==========================================
 # Script 6: החלפת כותרות לעמוד ב (7 לשעבר)
 # ==========================================
@@ -1765,7 +1648,7 @@ class ReplacePageBHeaders(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר ראשון - שים לב (באדום)
+
         attention = QLabel(
             "שים לב!\n\n"
             "התוכנה פועלת רק אם הדפים והעמודים הוגדרו כבר ככותרות\n"
@@ -1788,7 +1671,6 @@ class ReplacePageBHeaders(QWidget):
         attention.setWordWrap(True)
         layout.addWidget(attention)
 
-        # הסבר שני - זהירות (באדום)
         warning = QLabel(
             "זהירות!\n\n"
             "בדוק היטב שלא פספסת שום כותרת של 'דף' לפני שאתה מריץ תוכנה זו\n"
@@ -1810,7 +1692,6 @@ class ReplacePageBHeaders(QWidget):
         warning.setWordWrap(True)
         layout.addWidget(warning)
 
-        # עיצוב משותף לתוויות
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -1820,7 +1701,6 @@ class ReplacePageBHeaders(QWidget):
             }
         """
 
-        # עיצוב משותף לקומבו-בוקסים
         combo_style = """
             QComboBox {
                 border: 2px solid #2b4c7e;
@@ -1910,7 +1790,7 @@ class ReplacePageBHeaders(QWidget):
         button_container.addStretch(1)
         layout.addLayout(button_container)
 
-        # מרווח גמיש בתחתית
+
         layout.addStretch()
 
         self.setLayout(layout)
@@ -2019,7 +1899,7 @@ class ReplacePageBHeaders(QWidget):
 
 
 
-
+#מחלקה לא מסודרת עדיין עם שגיאות
 
     
    
@@ -2828,8 +2708,7 @@ class ImageToHtmlApp(QtWidgets.QWidget):
 
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(15, 15, 15, 15)  
-        
-        # עיצוב תוויות
+
         label_style = """
             QLabel {
                 color: #1a365d;
@@ -2839,7 +2718,6 @@ class ImageToHtmlApp(QtWidgets.QWidget):
             }
         """
 
-        # עיצוב כפתורים
         button_style = """
            QPushButton {
                border-radius: 15px;
@@ -3156,7 +3034,6 @@ class TextCleanerApp(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(15)
 
-        # הסבר למשתמש בחלק העליון - באדום
         explanation = QLabel(
             "שים לב!\n\n"
             "התוכנה תיקון שגיאות נפוצות בטקסט.\n"
@@ -3215,7 +3092,6 @@ class TextCleanerApp(QWidget):
         button_container.addStretch(1)
         layout.addLayout(button_container)
 
-        # קונטיינר לתיבות הסימון
         checkbox_style = """
             QCheckBox {
                 color: #1a365d;
@@ -3315,7 +3191,6 @@ class TextCleanerApp(QWidget):
         action_buttons_container.addWidget(self.undoBtn, alignment=Qt.AlignCenter)
         layout.addLayout(action_buttons_container)
 
-        # מרווח גמיש בתחתית
         layout.addStretch()
 
         self.setLayout(layout)
@@ -3428,7 +3303,7 @@ class MainMenu(QWidget):
         self.current_file_path = ""
         self.current_index = -1        
         self.last_processor_title = ""
-        self.current_version = "3.2"
+        self.current_version = "3.0.0"
         
         # הגדרת החלון
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
@@ -3440,10 +3315,60 @@ class MainMenu(QWidget):
         if sys.platform == 'win32':
             QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
 
+               # בדיקת עדכונים אוטומטית בהפעלה
+        QTimer.singleShot(3000, self.check_for_updates) 
+
+    def check_for_updates(self, silent=True):
+        """
+        בדיקת עדכונים חדשים
+        :param silent: האם להציג הודעה כשאין עדכונים
+        """
+        self.status_label.setText("בודק עדכונים...")
+        self.update_checker = UpdateChecker(self.current_version)
+
+        # חיבור הסיגנלים
+        self.update_checker.update_available.connect(self.handle_update_available)
+        self.update_checker.no_update.connect(lambda: self.handle_no_update(silent))
+        self.update_checker.error.connect(lambda msg: self.handle_update_error(msg, silent))
+
+        self.update_checker.start()
+
+    def handle_no_update(self, silent=False):
+        """טיפול במקרה שאין עדכון"""
+        if not silent:
+            QMessageBox.information(
+                self,
+                "אין עדכונים",
+                "התוכנה מעודכנת לגרסה האחרונה"
+            )
+        self.status_label.setText("התוכנה מעודכנת")
+
+    def handle_update_error(self, error_msg, silent=False):
+        """טיפול בשגיאות בתהליך העדכון"""
+        if not silent:
+            QMessageBox.warning(
+                self,
+                "שגיאה",
+                error_msg
+            )
+        self.status_label.setText("שגיאה בבדיקת עדכונים")     
+
     def init_ui(self):
         main_layout = QHBoxLayout()
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
+
+        #עדכונים
+        update_button = QPushButton("⭳")
+        update_button.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 14pt;
+        """)
+        update_button.setCursor(QCursor(Qt.PointingHandCursor))
+
+        update_button.clicked.connect(lambda: self.check_for_updates(silent=False))
+        update_button.setFixedSize(40, 40)
+        update_button.setToolTip("עדכונים")
 
         # מיכל ימני לכפתורים
         right_container = QWidget()
@@ -3527,13 +3452,14 @@ class MainMenu(QWidget):
                 font-weight: bold;
                 font-size: 8.5pt;
             }
+
             QPushButton:hover {
                 background-color: #b7b5b5;
             }
         """)
         add_file_button.clicked.connect(self.select_file)
 
-        # הוספת כפתורי פעולה ללייאאוט
+        #הוספת כפתורי פעולה
         action_buttons_layout.addWidget(add_file_button)
         action_buttons_layout.addStretch(1)
         action_buttons_layout.addWidget(self.status_label)
@@ -3542,30 +3468,33 @@ class MainMenu(QWidget):
         action_buttons_layout.addWidget(self.redo_button)
         action_buttons_layout.addWidget(self.save_button)
 
-        # יצירת תיבות הטקסט עם הטקסט הדוגמה
-        self.unmatched_regex_text = QTextEdit()
-        self.unmatched_regex_text.setReadOnly(True)
-        self.unmatched_regex_text.setHtml(DefaultTextContent.get_default_html())
-        self.unmatched_regex_text.setStyleSheet(DefaultTextContent.get_default_style())
-
-        self.unmatched_tags_text = QTextEdit()
-        self.unmatched_tags_text.setReadOnly(True)
-        self.unmatched_tags_text.setHtml(DefaultTextContent.get_default_html())
-        self.unmatched_tags_text.setStyleSheet(DefaultTextContent.get_default_style())
-
         # תצוגת טקסט
         self.text_display = QtWidgets.QTextBrowser()
         self.text_display.setReadOnly(True)
         self.text_display.setLayoutDirection(Qt.RightToLeft)
+        
+        # הגדרת העיצוב הבסיסי
+        base_font = QFont("Frank Ruehl CLM", 18)
+        self.text_display.setFont(base_font)
+        
+        # הגדרת סגנון בסיסי
+        self.text_display.document().setDefaultStyleSheet("""
+            body { line-height: 1.5; }
+            h1 { font-size: 24px; margin: 10px 0; }
+            h2 { font-size: 22px; margin: 10px 0; }
+            h3 { font-size: 20px; margin: 10px 0; }
+            h4 { font-size: 19px; margin: 10px 0; }
+            h5 { font-size: 18px; margin: 10px 0; }
+            h6 { font-size: 18px; margin: 10px 0; }
+        """)
+        
+        # עיצוב המסגרת
         self.text_display.setStyleSheet("""
             QTextBrowser {
                 background-color: transparent;
                 border: 2px solid black;
                 border-radius: 15px;
                 padding: 20px 40px;
-                font-family: "Frank Ruehl CLM",  "Segoe UI";
-                font-size: 18px;
-                line-height: 1.5;
             }
         """)
 
@@ -3696,7 +3625,7 @@ class MainMenu(QWidget):
         bottom_buttons_layout.addWidget(self.edit_button)
         bottom_buttons_layout.addStretch()
 
-        # סידור סופי של הלייאאוטים
+        #סידור סופי
         text_layout.insertLayout(0, action_buttons_layout)
         text_layout.addLayout(text_bottom_buttons)
         text_layout.addWidget(self.text_display)
@@ -3804,88 +3733,177 @@ class MainMenu(QWidget):
             cursor.insertHtml(f'<h1>{selected_text}</h1>')
             self._safe_update_history(self.text_display.toHtml(), "H1")   
         
-    def edit_text(self):
-        """פונקציה לניהול מצב העריכה בפאנל הקיים"""
-        is_editing_mode = self.editing_buttons[0].isHidden()
+    def load_file(self, file_path):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as file:
+                content = file.read()
+            
+            # שמירת התוכן המקורי בהיסטוריה ללא שינוי
+            self.document_history = [(content, "מצב התחלתי")]
+            self.current_index = 0
+            
+            # המרת ירידות שורה לתגי BR לתצוגה בלבד
+            display_content = content.replace('\n', '<br>\n')
+            
+            # הצגת התוכן
+            self.text_display.setHtml(display_content)
+            self.update_buttons_state()
+            self.status_label.setText("קובץ נטען בהצלחה")
+            
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בטעינת הקובץ: {str(e)}")
+
+    def _prepare_content_for_display(self, content):
+        """הכנת התוכן לתצוגה"""
+        # המרת ירידות שורה לתגי BR
+        content = content.replace('\n', '<br>')
         
-        # שינוי מצב העריכה של פאנל הטקסט
+        # יצירת מסמך HTML מינימלי
+        html_content = f"""
+        <html>
+        <head>
+        <meta charset="utf-8">
+        </head>
+        <body dir="rtl">
+        {content}
+        </body>
+        </html>
+        """
+        return html_content
+
+    def save_file(self):
+        if not self.current_file_path:
+            self.save_file_as()
+            return
+            
+        try:
+            # קבלת התוכן המקורי מההיסטוריה אם קיים
+            if self.current_index >= 0 and self.current_index < len(self.document_history):
+                content = self.document_history[self.current_index][0]
+            else:
+                # אחרת, קבלת התוכן הנוכחי וניקוי
+                content = self.text_display.toHtml()
+                
+                # הסרת כל המטה-דאטה של Qt
+                if '<!DOCTYPE' in content:
+                    body_start = content.find("<body")
+                    body_end = content.find("</body>")
+                    if body_start != -1 and body_end != -1:
+                        content = content[body_start:body_end + 7]
+                
+                # הסרת כל התגיות והמאפיינים של Qt
+                content = re.sub(r'<body[^>]*>', '', content)
+                content = content.replace('</body>', '')
+                content = content.replace('</html>', '')
+                content = re.sub(r' style="[^"]*"', '', content)
+                content = re.sub(r' class="[^"]*"', '', content)
+                content = re.sub(r'<p[^>]*>', '', content)
+                content = content.replace('</p>', '\n')
+                content = re.sub(r'<span[^>]*>', '', content)
+                content = content.replace('</span>', '')
+                
+                # הסרת תגיות BR והמרה לירידות שורה רגילות
+                content = re.sub(r'<br\s*/?>', '\n', content)
+                
+                # ניקוי רווחים וירידות שורה מיותרות
+                content = re.sub(r'\n\s*\n', '\n', content)
+                content = content.strip()
+            
+            with open(self.current_file_path, 'w', encoding='utf-8') as file:
+                file.write(content)
+                
+            self.status_label.setText("הקובץ נשמר בהצלחה")
+            QMessageBox.information(self, "שמירה", "הקובץ נשמר בהצלחה!")
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
+
+    def _clean_html_content(self, content):
+        """ניקוי תגיות HTML מיותרות"""
+        # הסרת ה-DOCTYPE וה-head
+        if '<!DOCTYPE' in content:
+            start = content.find('<body')
+            if start != -1:
+                content = content[start:]
+        
+        # הסרת תגיות style מיותרות
+        content = re.sub(r' style="[^"]*"', '', content)
+        content = re.sub(r' class="[^"]*"', '', content)
+        
+        # הסרת מאפיינים מיותרים
+        content = re.sub(r'<body[^>]*>', '', content)
+        content = content.replace('</body>', '')
+        content = content.replace('</html>', '')
+        content = re.sub(r'<p[^>]*>', '', content)
+        content = content.replace('</p>', '\n')
+        content = re.sub(r'<span[^>]*>', '', content)
+        content = content.replace('</span>', '')
+
+        
+       # המרת HTML entities בחזרה לתווים רגילים
+        entities = {
+            '&quot;': '"',
+            '&amp;': '&',
+            '&lt;': '<',
+            '&gt;': '>',
+            '&nbsp;': ' ',
+            '&#39;': "'",
+            '&apos;': "'"
+        }
+        
+        # החלפת BR בירידות שורה
+        content = re.sub(r'<br\s*/?>', '\n', content)
+        
+        # ניקוי ירידות שורה כפולות
+        content = re.sub(r'\n\s*\n', '\n', content)
+        content = content.strip()
+        
+        return content
+
+    def edit_text(self):
+        """פונקציה לניהול מצב העריכה"""
+        is_editing_mode = self.editing_buttons[0].isHidden()
         self.text_display.setReadOnly(not is_editing_mode)
         
-        # שמירת המצב הנוכחי להיסטוריה אם נכנסים למצב עריכה
         if is_editing_mode:
-            current_text = self.text_display.toPlainText()
-            self._safe_update_history(current_text, "כניסה למצב עריכה")
-            
-            # סגנון למצב עריכה
+            # עיצוב למצב עריכה
             self.text_display.setStyleSheet("""
-                QTextEdit {
+                QTextBrowser {
                     background-color: white;
                     border: 2px solid #2b4c7e;
                     border-radius: 15px;
                     padding: 20px 40px;
-                    font-family: "Segoe UI", Arial;
-                    font-size: 14px;
-                    line-height: 1.5;
                 }
             """)
             
-            # עדכון ממשק המשתמש למצב עריכה
             self.edit_button.setText("✗")
             self.edit_button.setToolTip("סגור מצב עריכה")
             self.status_label.setText("מצב עריכה פעיל")
-            self.status_label.setStyleSheet("""
-                color: #2b4c7e;
-                font-size: 14px;
-                padding: 5px 15px;
-                background-color: #E8F0FE;
-                border-radius: 10px;
-            """)
             
-            # הצגת כפתורי העריכה
             for button in self.editing_buttons:
                 button.show()
-        
         else:
-            # שמירת השינויים לפני יציאה ממצב עריכה
-            if self.current_file_path:
-                current_text = self.text_display.toPlainText()
-                self._safe_update_history(current_text, "יציאה ממצב עריכה")
-            
-            # סגנון למצב תצוגה
+            # עיצוב למצב תצוגה
             self.text_display.setStyleSheet("""
-                QTextEdit {
+                QTextBrowser {
                     background-color: transparent;
                     border: 2px solid black;
                     border-radius: 15px;
                     padding: 20px 40px;
-                    font-family: "Frank Ruehl CLM" ,  "Segoe UI" ;
-                    font-size: 18px;
-                    line-height: 1.5;
                 }
             """)
             
-            # עדכון ממשק המשתמש למצב תצוגה
             self.edit_button.setText("✍")
             self.edit_button.setToolTip("עריכה")
             self.status_label.setText("מצב תצוגה בלבד")
-            self.status_label.setStyleSheet("""
-                color: #666666;
-                font-size: 14px;
-                padding: 5px 15px;
-                background-color: transparent;
-                border-radius: 10px;
-            """)
             
-            # הסתרת כפתורי העריכה
             for button in self.editing_buttons:
                 button.hide()
-
-        # עדכון מצב הכפתורים
+        
         self.update_buttons_state()
 
     def on_text_changed(self):
         """מטפל בשינויים בטקסט במצב עריכה"""
-        if not self.text_display.isReadOnly():  # רק אם במצב עריכה
+        if not self.text_display.isReadOnly():  
             self.save_button.setEnabled(True)        
 
     def process_text(self, processor_widget):
@@ -3949,16 +3967,18 @@ class MainMenu(QWidget):
         return descriptions.get(window_title, f"בוצע עיבוד: {window_title}")
 
     def _safe_update_history(self, content, description):
+        """שמירת מצב בהיסטוריה"""
         try:
-            # מחיקת היסטוריה "עתידית" אם קיימת
+            # ניקוי התוכן מתגיות זמניות לפני שמירה בהיסטוריה
+            if isinstance(content, str) and '<body' in content:
+                content = self._clean_html_content(content)
+            
+            # מחיקת היסטוריה "עתידית"
             if self.current_index < len(self.document_history) - 1:
                 self.document_history = self.document_history[:self.current_index + 1]
             
-            # הוספת המצב החדש להיסטוריה
             self.document_history.append((content, description))
             self.current_index = len(self.document_history) - 1
-            
-            # עדכון מצב הכפתורים
             self.update_buttons_state()
             
         except Exception as e:
@@ -4017,43 +4037,6 @@ class MainMenu(QWidget):
         except Exception as e:
             print(f"שגיאה בעדכון מצב הכפתורים: {str(e)}")
             
-    def save_file(self):
-        if not self.current_file_path:
-            self.save_file_as()
-            return
-            
-        try:
-            if self.current_index >= 0 and self.current_index < len(self.document_history):
-                # שימוש בתוכן המקורי מההיסטוריה
-                content = self.document_history[self.current_index][0]
-            else:
-                content = self.text_display.toHtml()
-                # הסרת כל התגים של HTML
-                content = re.sub(r'<[^>]+>', '', content)
-                content = content.replace('&nbsp;', ' ')  # החלפת רווחים מיוחדים
-            
-            with open(self.current_file_path, 'w', encoding='utf-8') as file:
-                file.write(content)
-                
-            self.status_label.setText("הקובץ נשמר בהצלחה")
-            QMessageBox.information(self, "שמירה", "הקובץ נשמר בהצלחה!")
-        except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
-
-    def save_file(self):
-        """שמירת הקובץ"""
-        try:
-            if not self.current_file_path:
-                return
-            current_content = self.document_history[self.current_index][0]
-            with open(self.current_file_path, 'w', encoding='utf-8') as file:
-                file.write(current_content)
-            
-            self.status_label.setText("הקובץ נשמר בהצלחה")
-            
-        except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
-            
     def select_file(self):
         options = QFileDialog.Options()
         file_path, _ = QFileDialog.getOpenFileName(
@@ -4068,24 +4051,6 @@ class MainMenu(QWidget):
         if file_path:
             self.current_file_path = file_path
             self.load_file(file_path)
-
-    def load_file(self, file_path):
-        try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-                
-            # המרת רווחים וירידות שורה לתגים מתאימים תוך שמירה על תגי HTML קיימים
-            processed_content = content.replace('\n', '<br>\n')  # מוסיף <br> לפני כל ירידת שורה
-            
-            self.text_display.setHtml(processed_content)
-            self.document_history = [(content, "מצב התחלתי")]  # שומר את התוכן המקורי ללא תגי BR
-            self.current_index = 0
-            self.update_buttons_state()
-            self.status_label.setText("קובץ נטען בהצלחה")
-            
-        except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בטעינת הקובץ: {str(e)}")
-
 
     def save_action(self):
         if not self.current_file_path:
@@ -4106,25 +4071,26 @@ class MainMenu(QWidget):
             QMessageBox.critical(self, "שגיאה", f"שגיאה בשמירת הקובץ: {str(e)}")
 
 
-
     def refresh_after_processing(self):
         """עדכון התצוגה לאחר עיבוד"""
         try:
             with open(self.current_file_path, 'r', encoding='utf-8') as file:
-                new_content = file.read()
+                content = file.read()
 
-            display_content = new_content.replace('\n', '<br>\n')
+            # המרת ירידות שורה לתצוגה
+            display_content = content.replace('\n', '<br>\n')
             self.text_display.setHtml(display_content)
 
             if self.last_processor_title:
                 action_description = self._get_action_description(self.last_processor_title)
-                # עדכון ההיסטוריה והסטטוס
-                self._safe_update_history(new_content, action_description)
+                # עדכון ההיסטוריה עם התוכן המקורי (ללא HTML)
+                self._safe_update_history(content, action_description)
                 self.status_label.setText(action_description)
                 
         except Exception as e:
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעדכון התצוגה: {str(e)}")
 
+            
     def _get_action_description(self, window_title):
         """קבלת תיאור מפורט של הפעולה לפי שם החלון"""
         descriptions = {
@@ -4140,9 +4106,6 @@ class MainMenu(QWidget):
             "המרת תמונה לטקסט": "בוצעה המרת תמונה לטקסט",
             "תיקון שגיאות נפוצות": "בוצע תיקון שגיאות נפוצות",
             "נקודותיים ורווח": "בוצע תיקון נקודותיים ורווחים",
-            "סקריפט 1": "בוצע עיבוד סקריפט 1",  # הוספת תיאורים לסקריפטים
-            "סקריפט 2": "בוצע עיבוד סקריפט 2",
-            
         }
         return descriptions.get(window_title, f"בוצע עיבוד: {window_title}")
    
@@ -4153,14 +4116,15 @@ class MainMenu(QWidget):
             
         try:
             with open(self.current_file_path, 'r', encoding='utf-8') as file:
-                new_content = file.read()
+                content = file.read()
             
-            # המרה לתצוגה
-            display_content = new_content.replace('\n', '<br>\n')
+            # המרת ירידות שורה לתצוגה
+            display_content = content.replace('\n', '<br>\n')
             self.text_display.setHtml(display_content)
 
             action_description = self._get_action_description(self.last_processor_title)
-            self._safe_update_history(new_content, action_description)
+            # עדכון ההיסטוריה עם התוכן המקורי (ללא HTML)
+            self._safe_update_history(content, action_description)
 
             print(f"עודכן תוכן חדש - תיאור: {action_description}")
             print(f"גודל היסטוריה: {len(self.document_history)}")
@@ -4168,9 +4132,6 @@ class MainMenu(QWidget):
         except Exception as e:
             print(f"שגיאה בעדכון התוכן: {str(e)}")
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעדכון התוכן: {str(e)}")
-
- #סנכרון חלונות המשנה עם החלון הראשי
-
     def open_about_dialog(self):
         """פתיחת חלון 'אודות'"""
         dialog = AboutDialog(self)
@@ -4282,25 +4243,29 @@ class MainMenu(QWidget):
         self.Text_Cleaner_App_window.changes_made.connect(self.update_content_from_child)
         self.Text_Cleaner_App_window.show()
 
-   
-        
-
     def load_icon_from_base64(self, base64_string):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
     
     #עדכונים
-    def check_for_updates(self):
-        
-        """בדיקת עדכונים חדשים"""
+    def check_for_updates(self, silent=True):
+        """
+        בדיקת עדכונים חדשים
+        :param silent: האם להציג הודעה כשאין עדכונים
+        """
         self.status_label.setText("בודק עדכונים...")
+        self.update_checker = UpdateChecker(current_version=self.current_version, parent=self)
 
-        self.update_checker = UpdateChecker(self.current_version)
-
+        # חיבור הסיגנלים עם לכידת הפרמטר silent
         self.update_checker.update_available.connect(self.handle_update_available)
-        self.update_checker.no_update.connect(self.handle_no_update)
-        self.update_checker.error.connect(self.handle_update_error)
+        # שימוש ב-partial במקום למבדה
+        self.update_checker.no_update.connect(
+            partial(self.handle_no_update, silent=silent)
+        )
+        self.update_checker.error.connect(
+            partial(self.handle_update_error, silent=silent)
+        )
 
         self.update_checker.start()
 
@@ -4340,46 +4305,123 @@ class MainMenu(QWidget):
         """הורדת והתקנת העדכון"""
         try:
             self.status_label.setText("מוריד עדכון...")
+            
+            # קבלת הנתיב המלא של הקובץ הנוכחי
+            current_exe = sys.executable
+            current_dir = os.path.dirname(current_exe)
+            backup_exe = os.path.join(current_dir, 'backup.exe')
+            new_exe = os.path.join(current_dir, 'new.exe')
+            
+            # הורדת הקובץ החדש
             response = requests.get(download_url, stream=True)
             response.raise_for_status()
-
-            current_exe = sys.executable
-            backup_exe = current_exe + '.backup'
-            new_exe = current_exe + '.new'
-
+            
             with open(new_exe, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
-             #יצירת קובץ bat לטיפול בעידכון
-            update_script = f"""
-            @echo off
-            timeout /t 1 /nobreak > nul
-            move "{current_exe}" "{backup_exe}"
-            move "{new_exe}" "{current_exe}"
-            start "" "{current_exe}"
-            del "%~f0"
-            """.strip()
 
-            update_bat = os.path.join(os.path.dirname(current_exe), 'update.bat')
-            with open(update_bat, 'w') as f:
+            # קבלת ה-PID של התהליך הנוכחי
+            current_pid = os.getpid()
+            
+            # יצירת סקריפט העדכון עם תמיכה בעברית
+            update_script = f'''@echo off
+chcp 65001 > nul
+title עדכון תוכנת עריכת ספרי דיקטה
+
+echo ============================================
+echo              תהליך העדכון החל
+echo ============================================
+
+echo [*] ממתין לסגירת התוכנה...
+
+:CHECK_PROCESS
+tasklist /FI "PID eq {current_pid}" 2>NUL | find /I "{current_pid}" > NUL
+if %ERRORLEVEL% == 0 (
+    timeout /t 1 /nobreak > nul
+    goto CHECK_PROCESS
+)
+
+:: המתנה נוספת לוודא שהתהליך נסגר לגמרי
+timeout /t 2 /nobreak > nul
+
+echo.
+echo [*] מגבה את הגרסה הקודמת...
+if exist "{backup_exe}" (
+    del "{backup_exe}" > nul 2>&1
+)
+move /Y "{current_exe}" "{backup_exe}" > nul 2>&1
+if errorlevel 1 (
+    echo [!] שגיאה: לא ניתן לגבות את הקובץ הקיים
+    echo [!] נא לוודא שיש הרשאות מתאימות
+    echo.
+    pause
+    exit /b 1
+)
+
+echo.
+echo [*] מתקין את הגרסה החדשה...
+move /Y "{new_exe}" "{current_exe}" > nul 2>&1
+if errorlevel 1 (
+    echo [!] שגיאה: לא ניתן להתקין את הגרסה החדשה
+    echo [*] משחזר את הגרסה הקודמת...
+    move /Y "{backup_exe}" "{current_exe}" > nul 2>&1
+    echo.
+    pause
+    exit /b 1
+)
+
+echo.
+echo [*] מפעיל את הגרסה החדשה...
+start "" "{current_exe}"
+
+echo.
+echo [*] העדכון הושלם בהצלחה!
+echo ============================================
+
+timeout /t 3 /nobreak > nul
+del "%~f0"
+exit
+'''
+            
+            # שמירת סקריפט העדכון בקידוד UTF-8
+            update_bat = os.path.join(current_dir, 'update.bat')
+            with open(update_bat, 'w', encoding='utf-8-sig') as f:
                 f.write(update_script)
-
+            
+            # הודעה למשתמש
             QMessageBox.information(
                 self,
                 "התקנת עדכון",
                 "העדכון ירד בהצלחה. התוכנה תיסגר כעת ותופעל מחדש עם הגרסה החדשה."
             )
-            os.startfile(update_bat)
+            
+            # הפעלת סקריפט העדכון
+            if sys.platform == 'win32':
+                import ctypes
+                if ctypes.windll.shell32.IsUserAnAdmin():
+                    subprocess.Popen(['cmd.exe', '/c', update_bat], 
+                                   creationflags=subprocess.CREATE_NEW_CONSOLE)
+                else:
+                    ctypes.windll.shell32.ShellExecuteW(
+                        None, 
+                        "runas", 
+                        "cmd.exe", 
+                        f"/c {update_bat}", 
+                        None, 
+                        1
+                    )
+            
+            # סגירת התוכנה
             sys.exit()
-
+            
         except Exception as e:
             QMessageBox.critical(
                 self,
                 "שגיאה",
                 f"שגיאה בהורדת העדכון: {str(e)}"
             )
-            self.status_label.setText("שגיאה בהורדת העדכון")      
+            self.status_label.setText("שגיאה בהורדת העדכון")
 
 
 class AboutDialog(QDialog):
@@ -4569,41 +4611,82 @@ class DocumentHistory:
 #  update
 # ==========================================
 class UpdateChecker(QThread):
-    """בדיקת עידכונים"""
     update_available = pyqtSignal(str, str)  
     no_update = pyqtSignal()  
     error = pyqtSignal(str)  
 
-    def __init__(self, current_version):
-        super().__init__()
+    def __init__(self, current_version, parent=None):  # הוספת parent=None
+        super().__init__(parent)  # העברת parent ל-QThread
         self.current_version = current_version
+        self.headers = {'Accept': 'application/vnd.github.v3+json'}
+
         
+    def _compare_versions(self, latest_version, current_version):
+        """
+        השוואת גרסאות
+        :param latest_version: הגרסה האחרונה מ-GitHub
+        :param current_version: הגרסה הנוכחית של התוכנה
+        :return: True אם יש גרסה חדשה, False אם לא
+        """
+        try:
+            # ניקוי התחילית V או v מהגרסאות
+            latest_version = latest_version.upper().strip('V')
+            current_version = current_version.upper().strip('V')
+            
+            latest_parts = latest_version.split('.')
+            current_parts = current_version.split('.')
+            
+            # השלמת חלקים חסרים עם אפסים
+            while len(latest_parts) < 3:
+                latest_parts.append('0')
+            while len(current_parts) < 3:
+                current_parts.append('0')
+            
+            # המרה למספרים והשוואה
+            latest_nums = [int(x) for x in latest_parts]
+            current_nums = [int(x) for x in current_parts]
+            
+            return latest_nums > current_nums
+            
+        except Exception as e:
+            print(f"שגיאה בהשוואת גרסאות: {str(e)}")
+            return False
     def run(self):
         try:
+            # קבלת המידע על הגרסה האחרונה מ-GitHub API
             response = requests.get(
-                "https://github.com/YOSEFTT/EditingDictaBooks/releases/latest",
+                "https://api.github.com/repos/YOSEFTT/EditingDictaBooks/releases/latest",
+                headers=self.headers,
                 timeout=10
             )
             response.raise_for_status()
             
             latest_release = response.json()
-            latest_version = latest_release['tag_name'].lstrip('v')
+            latest_version = latest_release['tag_name'].replace('v', '')
             
-            if version.parse(latest_version) > version.parse(self.current_version):
-                # מצאנו גרסה חדשה יותר
+            print(f"גרסה נוכחית: {self.current_version}")
+            print(f"גרסה אחרונה: {latest_version}")
+            
+            # בדיקה אם יש גרסה חדשה
+            if self._compare_versions(latest_version, self.current_version):
+                # חיפוש קובץ ההורדה המתאים
                 download_url = None
                 for asset in latest_release['assets']:
-                    if asset['name'].endswith('.exe'):  
+                    if asset['name'].lower().endswith('.exe'):
                         download_url = asset['browser_download_url']
                         break
                 
                 if download_url:
+                    print("נמצאה גרסה חדשה!")
                     self.update_available.emit(download_url, latest_version)
                 else:
                     self.error.emit("נמצאה גרסה חדשה אך לא נמצא קובץ הורדה מתאים")
             else:
+                print("אין גרסה חדשה")
                 self.no_update.emit()
         
+        except requests.exceptions.RequestException as e:
+            self.error.emit(f"שגיאה בתקשורת עם שרת GitHub: {str(e)}")
         except Exception as e:
             self.error.emit(f"שגיאה בבדיקת עדכונים: {str(e)}")
 
