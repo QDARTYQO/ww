@@ -10,7 +10,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette
 from PyQt5.QtWinExtras import QtWin
-from PyQt5.QtWidgets import QProxyStyle, QMessageBox
+from PyQt5.QtWidgets import QProxyStyle, QMessageBox, QTreeWidget
 from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer
 from pyluach import gematria
 from bs4 import BeautifulSoup
@@ -90,6 +90,110 @@ class FileLoader(QThread):
             result['error'] = f"שגיאה בפתיחת הקובץ: {str(e)}"
         finally:
             self.finished.emit(result)
+
+class DefaultTextContent:
+    """מחלקה המכילה את טקסט ברירת המחדל לתצוגה ראשונית"""
+    
+    @staticmethod
+    def get_default_html():
+        return """<h1>עריכת ספר באוצריא</h1>
+הסבר כיצד ניתן 'לערוך' את הטקסט כדי שיופיע בתוכנה כאילו הוא טקסט ערוך.
+אנו צריכים להוסיף לטקסט לפני ואחרי המילה (או המילים) שאותם אנו רוצים לערוך, את הסימנים: < >, וביניהם אותיות מסוימות באנגלית [הנקראים תגי HTML, ותגי CSS], ובתג שאחרי המילה (או המילים) יש להוסיף גם קו נטוי בתוך התג לפני האותיות באנגלית [/].
+התג הראשון מגדיר לתוכנה להתחיל להפעיל את צורת העריכה הכתובה בו, והתג האחרון מורה לתוכנה שעד כאן יש להפעיל זאת. הראשון נקרא תג פותח, והשני תג סוגר.
+על מנת להבין איך יוצרים את כל סוגי האפשרויות האלו, יש לפתוח קובץ זה דרך קורא טקסטים כגון פנקס רשימות או וורד וכדומה וכך ניתן לראות את התגים.
+מומלץ מאוד לאחר פתיחת קובץ זה ע"י עורך טקסט, ללחוץ על צירוף המקשים: Ctrl+Shift [קונטרול+שיפט] השמאליים במקלדת,  כדי ליישר את הטקסט לצד שמאל, כך ניתן להבין טוב יותר את צורת כתיבת התגים האלו. בכל עת ניתן להחזיר לצד ימין ע"י לחיצה על צירוף המקשים האלו שבצד ימין של המקלדת.
+שימו לב! בכתיבת תג פותח בלי תג סוגר, התוכנה תמשיך את העריכה על כל הקטע עד ירידת השורה הבאה [ע"י Enter או Shift+Enter (אנטר או שיפט+אנטר)]. 
+באם נכתב תג סוגר, הטקסט שנכתב מכאן ואילך גם אם הוא באותו קטע לא יוחל עליו ההגדרות הקודמות. יוצאים מכלל זה הם תגי הכותרות שמוחלות באופן אוטומטי על כל הפיסקה, גם אם נכתב באמצעה תג סוגר.
+בכל פיסקה [ירידת שורה ע"י אנטר או שיפט+אנטר] יש לכתוב מחדש את התגים שברצונכם להפעיל בקטע זה.
+
+<h1>כותרת רמה 1 [תמיד זה שם הספר, בשורה הראשונה]</h1>
+<h2>כותרת רמה 2</h2>
+<h3>כותרת רמה 3</h3>
+<h4>כותרת רמה 4</h4>
+<h5>כותרת רמה 5</h5>
+<h6>כותרת רמה 6</h6>
+שימו לב! כותרות ברמה 7 ומעלה, לא נתמכות.
+
+<h2>הדגשה</h2>
+<b>הדגשה</b>
+<strong>צורה נוספת</strong>
+
+<h2>גודל כתב</h2>
+<big>כתב גדול</big> 
+<big><big>כתב גדול מאוד</big></big>
+<small>כתב קטן</small>
+<small><small>כתב קטן מאוד</small></small>
+[הסבר] להגדלת והקטנת גודל גופן מותאמת אישית יש לכתוב את התגים האלו לפני ואחרי הטקסט הרצוי.
+<span style="font-size:150%;">הגדלת הכתב ל 150%</span>
+<span style="font-size:70%;">הקטנת הכתב ל 70%</span>
+<span style="font-size:50%;">הקטנת הכתב ל 50%</span>
+
+<h2>כתב נטוי</h2>
+<i>כתב נטוי</i>
+
+<h2>סוג גופן</h2>
+[הסבר] לבחירת גופן מסוים [ניתן לבחור גם גופן שלא נמצא ברשימת הגופנים בהגדרות התוכנה], יש לכתוב את התגים האלו לפני ואחרי הטקסט הרצוי.
+<span style="font-family: SBL Hebrew;">כתב אחר</span>
+<span style="font-family: Arial;">אריאל</span>
+<span style="font-family: FrankRuehl;">פרנקריל</span>
+<span style="font-family: Hadassah Friedlaender;">הדסה</span>
+<span style="font-family: Narkisim;">נרקיסים</span>
+<span style="font-family: Guttman Mantova;">מנטובה</span>
+<span style="font-family: David;">דוד</span>
+<span style="font-family: Guttman Logo1;">גוטמן</span>
+
+<h2>צבע גופן</h2>
+[הסבר] לבחירת צבע מסוים שבו יוצג הטקסט, יש להקליד את התגים האלו לפני ואחרי הטקסט הרצוי, כמובן ניתן לבחור כל סוג של צבע, יש לכתוב את שם הצבע באנגלית, לצבעים בסיסיים, או את קוד הצבע.
+<span style="color:Black;">כאן לדוגמא נבחר הצבע השחור (ברירת מחדל, גם בלי לכתוב סוג צבע)</span>
+<span style="color:Gray;">כאן לדוגמא נבחר הצבע האפור</span>
+<span style="color:Blue;">כאן לדוגמא נבחר הצבע הכחול</span>
+<span style="color:LightBlue;">כאן לדוגמא נבחר הצבע התכלת</span>
+<span style="color:Green;">כאן לדוגמא נבחר הצבע הירוק</span>
+<span style="color:LightGreen;">כאן לדוגמא נבחר הצבע הירוק בהיר</span>
+<span style="color:Aqua;">כאן לדוגמא נבחר הצבע הטורקיז</span>
+<span style="color:Red;">כאן לדוגמא נבחר הצבע האדום</span>
+<span style="color:Purple;">כאן לדוגמא נבחר הצבע הסגול</span>
+<span style="color:Yellow;">כאן לדוגמא נבחר הצבע הצהוב</span>
+<span style="color:Lightyellow;">כאן לדוגמא נבחר הצבע הצהוב בהיר</span>
+<span style="color:White;">כאן לדוגמא נבחר הצבע הלבן</span>
+בחירת צבעים לפי קוד [ע"י קוד ניתן לבחור מגוון רחב מאוד של צבעים ותתי צבעים].
+<span style="color:#00FF00;">כאן לדוגמא נבחר צבע ירוק זורח</span>
+<span style="color:#2828AC;">כאן לדוגמא נבחר הצבע כחול כהה</span>
+<span style="color:#F0E68C;">כאן לדוגמא נבחר הצבע הכתום</span>
+
+<h2>יצירת מספר סוגי תגים ביחד</h2>
+<span style="font-size:130%; font-family: SBL Hebrew; color:Red;">בחירת גופן והגדלת כתב ושינוי צבע ביחד</span>
+[הסבר] אין הבדל בסדר הכתיבה מה רושמים קודם, את תגי סוג הגופן או הגודל או הצבע וכדו'.
+
+<h2>הערות שוליים</h2>
+בגוף הטקסט שבו רוצים לרשום את ההערה יש לרשום את התגים האלו<sup>2</sup> וביניהם את מספר ההערה<sup>1</sup>.
+לאחר סוף הקטע יש לכתוב כך: 
+<small><sup>1</sup> גוף ההערה</small>
+<small><sup>2</sup> גוף ההערה</small>
+כדי שמספר ההערה יכתב בצבע תכלת וכן עם קו מתחתיו [כמו קישור] נכתוב כך: [שים לב, קישורים עצמם אינם עובדים באוצריא, זה רק מראה של קישור].
+הטקסט בגוף הספר<a href><sup>1</sup></a>.
+<small><a href><sup>1</sup></a> גוף ההערה</small>
+<small><a href><sup>2</sup></a> גוף ההערה</small>
+
+<h2>סימנים נוספים</h2>
+תו ר"ת הפוך &#8220;
+תו חזור אחורה &#8617
+תו חזור אחורה בצבע תכלת עם קו מתחתיו [כמו קישור] <a href>&#8617</a>"""
+
+    @staticmethod
+    def get_default_style():
+        """מחזיר את הסגנון עבור תיבת הטקסט"""
+        return """
+            QTextEdit {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: white;
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+            }
+        """           
 # ==========================================
 # Script 1: יצירת כותרות לאוצריא
 # ==========================================
@@ -97,93 +201,167 @@ class FileLoader(QThread):
 class CreateHeadersOtZria(QWidget):
     changes_made = pyqtSignal()
     
-    def __init__(self):
-        super().__init__()
-        self.setStyleSheet(GLOBAL_STYLE)
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.file_path = ""
         self.setWindowTitle("יצירת כותרות לאוצריא")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 600, 300)
+        #self.setGeometry(100, 100, 500, 450)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
+        
         self.init_ui()
+
+        if parent:
+            parent_center = parent.mapToGlobal(parent.rect().center())
+            self.move(parent_center.x() - self.width() // 2,
+                     parent_center.y() - self.height() // 2)        
 
     def init_ui(self):
         layout = QVBoxLayout()
-        self.setLayout(layout)  # חשוב! צריך להגדיר את ה-layout לחלון
-       
-        # מילה לחיפוש
-        search_layout = QHBoxLayout()
-        search_label = QLabel("מילה לחפש:")
-        search_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.level_var = QComboBox()
-        self.level_var.setLayoutDirection(Qt.RightToLeft)
-        self.level_var.setFixedSize(150, 40)
-        self.level_var.setLayoutDirection(Qt.RightToLeft)
-        search_choices = ["דף", "עמוד", "פרק", "פסוק", "שאלה", "סימן", "סעיף", "הלכה", "הלכות", "סק"]
-        self.level_var.addItems(search_choices)
-        self.level_var.setEditable(True)
-        search_layout.addWidget(self.level_var)
-        search_layout.addWidget(search_label)
-        layout.addLayout(search_layout)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
 
-        # הסבר למשתמש
+        # הסבר למשתמש - בחלק העליון עם גוון אדום
         explanation = QLabel(
+            "שים לב!\n\n"
             "בתיבת 'מילה לחפש' יש לבחור או להקליד את המילה בה אנו רוצים שתתחיל הכותרת.\n"
             "לדוג': פרק/פסוק/סימן/סעיף/הלכה/שאלה/עמוד/סק\n\n"
-            "שים לב!\n"
-            "אין להקליד רווח אחרי המילה, וכן אין להקליד את התו גרש (') או גרשיים (\"), וכן אין להקליד יותר ממילה אחת\n"
+            "אין להקליד רווח אחרי המילה, וכן אין להקליד את התו גרש (') או גרשיים (\"), "
+            "וכן אין להקליד יותר ממילה אחת"
         )
+        explanation.setStyleSheet("""
+            QLabel {
+                color: #8B0000;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #FFE4E1;
+                border: 2px solid #CD5C5C;
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
         explanation.setAlignment(Qt.AlignCenter)
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
+        # עיצוב משותף לתוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """
+
+        # עיצוב משותף לקומבו-בוקסים
+        combo_style = """
+            QComboBox {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2b4c7e;
+                margin-right: 5px;
+            }
+        """
+
+        # מילה לחיפוש
+        search_container = QVBoxLayout()
+        search_label = QLabel("מילה לחפש:")
+        search_label.setStyleSheet(label_style)
+        
+        self.level_var = QComboBox()
+        self.level_var.setStyleSheet(combo_style)
+        self.level_var.setFixedWidth(150)
+        search_choices = ["דף", "עמוד", "פרק", "פסוק", "שאלה", "סימן", "סעיף", "הלכה", "הלכות", "סק"]
+        self.level_var.addItems(search_choices)
+        self.level_var.setEditable(True)
+        
+        search_container.addWidget(search_label, alignment=Qt.AlignCenter)
+        search_container.addWidget(self.level_var, alignment=Qt.AlignCenter)
+        layout.addLayout(search_container)
+
         # מספר סימן מקסימלי
-        end_layout = QHBoxLayout()
+        end_container = QVBoxLayout()
         end_label = QLabel("מספר סימן מקסימלי:")
+        end_label.setStyleSheet(label_style)
+        
         self.end_var = QComboBox()
+        self.end_var.setStyleSheet(combo_style)
+        self.end_var.setFixedWidth(100)
         self.end_var.addItems([str(i) for i in range(1, 1000)])
         self.end_var.setCurrentText("999")
-        self.end_var.setFixedWidth(65)
-        end_layout.addWidget(self.end_var)
-        end_layout.addWidget(end_label)
-        layout.addLayout(end_layout)
+        
+        end_container.addWidget(end_label, alignment=Qt.AlignCenter)
+        end_container.addWidget(self.end_var, alignment=Qt.AlignCenter)
+        layout.addLayout(end_container)
 
         # רמת כותרת
-        heading_layout = QHBoxLayout()
-        self.heading_label = QLabel("רמת כותרת:")
-        self.heading_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        heading_container = QVBoxLayout()
+        heading_label = QLabel("רמת כותרת:")
+        heading_label.setStyleSheet(label_style)
+        
         self.heading_level_var = QComboBox()
+        self.heading_level_var.setStyleSheet(combo_style)
+        self.heading_level_var.setFixedWidth(100)
         self.heading_level_var.addItems([str(i) for i in range(2, 7)])
         self.heading_level_var.setCurrentText("2")
-        self.heading_level_var.setFixedWidth(50)
-        heading_layout.addWidget(self.heading_level_var, alignment=Qt.AlignRight)
-        heading_layout.addWidget(self.heading_label)
-        layout.addLayout(heading_layout)      
-
-        # כפתור הפעל
-        button_layout = QHBoxLayout()
-        button_layout.setAlignment(Qt.AlignCenter)
         
+        heading_container.addWidget(heading_label, alignment=Qt.AlignCenter)
+        heading_container.addWidget(self.heading_level_var, alignment=Qt.AlignCenter)
+        layout.addLayout(heading_container)
+
+        # כפתור הפעלה
+        button_container = QHBoxLayout()
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedSize(250, 75)
         run_button.setStyleSheet("""
             QPushButton {
-                border-radius: 25px;
-                padding: 10px;
-                margin: 5;
+                border-radius: 15px;
+                padding: 5px;
                 background-color: #eaeaea;
                 color: black;
                 font-weight: bold;
                 font-family: "Segoe UI", Arial;
-                font-size: 12pt;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
             }
             QPushButton:hover {
                 background-color: #b7b5b5;
             }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
         """)
-        
-        button_layout.addWidget(run_button)
-        layout.addLayout(button_layout)
+        button_container.addStretch(1)
+        button_container.addWidget(run_button)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
+
+        self.setLayout(layout)
 
     def set_file_path(self, path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
@@ -257,7 +435,7 @@ class CreateHeadersOtZria(QWidget):
             autpoot.write(join_lines)
 
         return found, count_headings
-
+    
     def run_script(self):
         try:
             if not self.file_path:
@@ -269,6 +447,7 @@ class CreateHeadersOtZria(QWidget):
                 return
 
             finde = self.level_var.currentText()
+            
             try:
                 end = int(self.end_var.currentText())
                 level_num = int(self.heading_level_var.currentText())
@@ -288,17 +467,33 @@ class CreateHeadersOtZria(QWidget):
                 )
                 return
 
+            # הפעלת הפונקציה הראשית
             found, count_headings = self.main(self.file_path, finde, end + 1, level_num)
-            if found and count_headings > 0:
+
+            # אם נבחרה המילה "דף" והיו שינויים, הפעל את סקריפט 3
+            if finde == "דף" and found and count_headings > 0:
+                add_page_number = AddPageNumberToHeading()
+                add_page_number.set_file_path(self.file_path)
+                add_page_number.process_file(self.file_path, "נקודה ונקודותיים")
+                
+                detailed_message = [
+                    ("<div style='text-align: center;'>התוכנה רצה בהצלחה!</div>", 12),
+                    (f"<div style='text-align: center;'>נוצרו {count_headings} כותרות והוספו מספרי עמודים</div>", 15, "bold"),
+                    ("<div style='text-align: center;'>כעת פתח את הספר בתוכנת 'אוצריא', והשינויים ישתקפו ב'ניווט' שבתפריט הצידי.</div>", 11)
+                ]
+            elif found and count_headings > 0:
                 detailed_message = [
                     ("<div style='text-align: center;'>התוכנה רצה בהצלחה!</div>", 12),
                     (f"<div style='text-align: center;'>נוצרו {count_headings} כותרות</div>", 15, "bold"),
                     ("<div style='text-align: center;'>כעת פתח את הספר בתוכנת 'אוצריא', והשינויים ישתקפו ב'ניווט' שבתפריט הצידי.</div>", 11)
                 ]
+                
+            if found and count_headings > 0:
                 self.show_custom_message("!מזל טוב", detailed_message, "560x310")
-                self.changes_made.emit()  # שליחת סיגנל שבוצעו שינויים
+                self.changes_made.emit()
             else:
                 self.show_custom_message("!שים לב", [("לא נמצא מה להחליף", 12)], "250x80")
+
         except Exception as e:
             self.show_custom_message("שגיאה", [("אירעה שגיאה: " + str(e), 12)], "250x150")
 
@@ -310,165 +505,238 @@ class CreateHeadersOtZria(QWidget):
 # ==========================================
 # Script 2: יצירת כותרות לאותיות בודדות
 # ==========================================
+
 class CreateSingleLetterHeaders(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self.file_path = ""  # הגדרת נתיב קובץ ריק
-        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.file_path = ""
         self.setWindowTitle("יצירת כותרות לאותיות בודדות")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 650, 300)
-        
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout()
-class CreateSingleLetterHeaders(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
-
-    def __init__(self):
-        super().__init__()
-        self.file_path = ""  # הגדרת נתיב קובץ ריק
-        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
-        self.setWindowTitle("יצירת כותרות לאותיות בודדות")
-        self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 650, 300)
-        
-        self.init_ui()
-
-    def init_ui(self):
-        layout = QVBoxLayout()
+        #self.setGeometry(100, 100, 500, 600)
         self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
 
-        # תו בתחילת האות ותו בסוף האות
-        start_char_layout = QHBoxLayout()
-        start_char_label = QLabel("תו בתחילת האות:")
-        start_char_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        start_char_label.setStyleSheet("font-size: 20px;")
-        
-        self.start_var = QComboBox()
-        self.start_var.setLayoutDirection(Qt.RightToLeft)
-        self.start_var.addItems(["", "(", "["])
-        self.start_var.setStyleSheet("text-align: right; font-size: 20px;")
-        
-        end_char_label = QLabel("     תו/ים בסוף האות:")
-        end_char_label.setStyleSheet("font-size: 20px;")
-        
-        self.finde_var = QComboBox()
-        self.finde_var.setStyleSheet("font-size: 20px;")
-        self.finde_var.addItems(['', '.', ',', "'", "',", "'.", ']', ')', "']", "')", "].", ").", "],", "),", "'),", "').", "'],", "']."])
-        
-        start_char_layout.addWidget(start_char_label)
-        start_char_layout.addWidget(self.start_var)
-        start_char_layout.addWidget(end_char_label)
-        start_char_layout.addWidget(self.finde_var)
-        layout.addLayout(start_char_layout)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
+        self.init_ui()
 
-        # הסבר למשתמש
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
+
+        # הסבר למשתמש בחלק העליון
         explanation = QLabel(
-            "שים לב!\nהבחירה בברירת מחדל [השורה הריקה], משמעותה סימון כל האפשרויות."
+            "שים לב!\n\n"
+            "הבחירה בברירת מחדל [השורה הריקה], משמעותה סימון כל האפשרויות."
         )
+        explanation.setStyleSheet("""
+            QLabel {
+                color: #8B0000;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #FFE4E1;
+                border: 2px solid #CD5C5C;
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
         explanation.setAlignment(Qt.AlignCenter)
-        explanation.setStyleSheet("font-size: 18px;")
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # רמת כותרת
-        heading_layout = QHBoxLayout()
-        heading_label = QLabel("רמת כותרת:")
-        heading_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        heading_label.setStyleSheet("font-size: 20px;")
+        # עיצוב משותף לתוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """
+
+        # עיצוב משותף לקומבו-בוקסים
+        combo_style = """
+            QComboBox {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2b4c7e;
+                margin-right: 5px;
+            }
+        """
+
+        # עיצוב משותף לתיבות טקסט
+        entry_style = """
+            QLineEdit {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                background-color: white;
+            }
+        """
+
+        # תו בתחילת וסוף האות + רמת כותרת באותה שורה
+        chars_container = QHBoxLayout()
         
+        # קונטיינר לתו התחלה
+        start_container = QVBoxLayout()
+        start_label = QLabel("תו בתחילת האות:")
+        start_label.setStyleSheet(label_style)
+        self.start_var = QComboBox()
+        self.start_var.addItems(["", "(", "["])
+        self.start_var.setStyleSheet(combo_style)
+        self.start_var.setFixedWidth(100)
+        start_container.addWidget(start_label, alignment=Qt.AlignCenter)
+        start_container.addWidget(self.start_var, alignment=Qt.AlignCenter)
+        
+        # קונטיינר לתו סוף
+        end_container = QVBoxLayout()
+        end_label = QLabel("תו/ים בסוף האות:")
+        end_label.setStyleSheet(label_style)
+        self.finde_var = QComboBox()
+        self.finde_var.addItems(['', '.', ',', "'", "',", "'.", ']', ')', "']", "')", "].", ").", "],", "),", "'),", "').", "'],", "']."])
+        self.finde_var.setStyleSheet(combo_style)
+        self.finde_var.setFixedWidth(100)
+        end_container.addWidget(end_label, alignment=Qt.AlignCenter)
+        end_container.addWidget(self.finde_var, alignment=Qt.AlignCenter)
+        
+        # קונטיינר לרמת כותרת
+        heading_container = QVBoxLayout()
+        heading_label = QLabel("רמת כותרת:")
+        heading_label.setStyleSheet(label_style)
         self.level_var = QComboBox()
-        self.level_var.setStyleSheet("font-size: 20px;")
-        self.level_var.setFixedWidth(50)
+        self.level_var.setStyleSheet(combo_style)
+        self.level_var.setFixedWidth(100)
         self.level_var.addItems([str(i) for i in range(2, 7)])
         self.level_var.setCurrentText("3")
-        
-        heading_layout.addWidget(heading_label)
-        heading_layout.addWidget(self.level_var, alignment=Qt.AlignLeft | Qt.AlignVCenter)
-        layout.addLayout(heading_layout)
+        heading_container.addWidget(heading_label, alignment=Qt.AlignCenter)
+        heading_container.addWidget(self.level_var, alignment=Qt.AlignCenter)
 
-        # תיבת סימון לחיפוש עם תווי הדגשה בלבד
+        # הוספת מרווחים גמישים בין האלמנטים
+        chars_container.addStretch(1)
+        chars_container.addLayout(start_container)
+        chars_container.addStretch(1)
+        chars_container.addLayout(end_container)
+        chars_container.addStretch(1)
+        chars_container.addLayout(heading_container)
+        chars_container.addStretch(1)
+        
+        layout.addLayout(chars_container)
+
+        # תיבת סימון לחיפוש עם תווי הדגשה
         self.bold_var = QCheckBox("לחפש עם תווי הדגשה בלבד")
-        self.bold_var.setStyleSheet("font-size: 20px;")
+        self.bold_var.setStyleSheet("""
+            QCheckBox {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QCheckBox::indicator {
+                width: 20px;
+                height: 20px;
+            }
+        """)
         self.bold_var.setChecked(True)
-        layout.addWidget(self.bold_var)
+        layout.addWidget(self.bold_var, alignment=Qt.AlignCenter)
 
         # התעלם מהתווים
-        ignore_layout = QHBoxLayout()
+        ignore_container = QVBoxLayout()
         ignore_label = QLabel("התעלם מהתווים הבאים:")
-        ignore_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        ignore_label.setStyleSheet("font-size: 20px;")
+        ignore_label.setStyleSheet(label_style)
         
         self.ignore_entry = QLineEdit()
-        self.ignore_entry.setStyleSheet("font-size: 20px;")
+        self.ignore_entry.setStyleSheet(entry_style)
         self.ignore_entry.setText('<big> </big> " ')
         
-        ignore_layout.addWidget(ignore_label)
-        ignore_layout.addWidget(self.ignore_entry)
-        layout.addLayout(ignore_layout)
+        ignore_container.addWidget(ignore_label, alignment=Qt.AlignCenter)
+        ignore_container.addWidget(self.ignore_entry)
+        layout.addLayout(ignore_container)
 
         # הסרת תווים
-        remove_layout = QHBoxLayout()
+        remove_container = QVBoxLayout()
         remove_label = QLabel("הסר את התווים הבאים:")
-        remove_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        remove_label.setStyleSheet("font-size: 20px;")
+        remove_label.setStyleSheet(label_style)
         
         self.remove_entry = QLineEdit()
-        self.remove_entry.setStyleSheet("font-size: 20px;")
+        self.remove_entry.setStyleSheet(entry_style)
         self.remove_entry.setText('<b> </b> <big> </big> , : " \' . ( ) [ ] { }')
         
-        remove_layout.addWidget(remove_label)
-        remove_layout.addWidget(self.remove_entry)
-        layout.addLayout(remove_layout)
+        remove_container.addWidget(remove_label, alignment=Qt.AlignCenter)
+        remove_container.addWidget(self.remove_entry)
+        layout.addLayout(remove_container)
 
         # מספר סימן מקסימלי
-        end_layout = QHBoxLayout()
+        end_container = QVBoxLayout()
         end_label = QLabel("מספר סימן מקסימלי:")
-        end_label.setStyleSheet("font-size: 20px;")
+        end_label.setStyleSheet(label_style)
         
         self.end_var = QComboBox()
-        self.end_var.setStyleSheet("font-size: 20px;")
-        self.end_var.setFixedWidth(65)
+        self.end_var.setStyleSheet(combo_style)
+        self.end_var.setFixedWidth(100)
         self.end_var.addItems([str(i) for i in range(1, 1000)])
         self.end_var.setCurrentText("999")
         
-        end_layout.addWidget(end_label)
-        end_layout.addWidget(self.end_var)
-        layout.addLayout(end_layout)
-      
-        # כפתור הפעל
-        button_layout = QHBoxLayout()
-        button_layout.setAlignment(Qt.AlignCenter)
-        
+        end_container.addWidget(end_label, alignment=Qt.AlignCenter)
+        end_container.addWidget(self.end_var, alignment=Qt.AlignCenter)
+        layout.addLayout(end_container)
+
+        # כפתור הפעלה
+        button_container = QHBoxLayout()
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedSize(250, 75)
         run_button.setStyleSheet("""
             QPushButton {
-                border-radius: 25px;
-                padding: 10px;
-                margin: 5;
+                border-radius: 15px;
+                padding: 5px;
                 background-color: #eaeaea;
                 color: black;
                 font-weight: bold;
                 font-family: "Segoe UI", Arial;
-                font-size: 12pt;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
             }
             QPushButton:hover {
                 background-color: #b7b5b5;
             }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
         """)
+        button_container.addStretch(1)
+        button_container.addWidget(run_button)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
+
+        self.setLayout(layout)
+
+
         
-        button_layout.addWidget(run_button)
-        layout.addLayout(button_layout)
-        self.setLayoutDirection(Qt.RightToLeft)
-
-
-
     def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
         if not file_path or not os.path.isfile(file_path):
@@ -564,7 +832,7 @@ class CreateSingleLetterHeaders(QWidget):
    
 
 # ==========================================
-# Script 3: הוספת מספר עמוד בכותרת הדף
+# Script 3: הוספת מספר עמוד בכותרת הדף משומש על ידי סריפט 1
 # ==========================================
 class AddPageNumberToHeading(QWidget):
     changes_made = pyqtSignal()
@@ -574,36 +842,97 @@ class AddPageNumberToHeading(QWidget):
         self.file_path = ""
         self.setWindowTitle("הוספת מספר עמוד בכותרת הדף")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
+        self.setGeometry(100, 100, 600, 500)  # גודל חלון גדול יותר
+        self.setLayoutDirection(Qt.RightToLeft)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)  # מרווחים מהשוליים
 
         # הסבר למשתמש
         explanation = QLabel(
             "התוכנה מחליפה בקובץ בכל מקום שיש כותרת 'דף' ובתחילת שורה הבאה כתוב: ע\"א או ע\"ב, כגון:\n\n"
-            "<h2>דף ב</h2>\nע\"א [טקסט כלשהו]\n\n"
+            "<h2>דף ב</h2>\n"
+            "ע\"א [טקסט כלשהו]\n\n"
             "הפעלת התוכנה תעדכן את הכותרת ל:\n\n"
-            "<h2>דף ב.</h2>\n[טקסט כלשהו]\n"
+            "<h2>דף ב.</h2>\n"
+            "[טקסט כלשהו]\n"
         )
-        explanation.setStyleSheet("font-size: 20px;")
+        explanation.setStyleSheet("""
+            QLabel {
+                background-color: #f8f9fa;
+                border: 2px solid black;
+                border-radius: 15px;
+                padding: 20px;
+                font-family: "David CLM", Arial;
+                font-size: 14px;
+            }
+        """)
         explanation.setAlignment(Qt.AlignCenter)
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
-        # סוג ההחלפה
+        # מרווח קטן
+        layout.addSpacing(15)
+
+        # תיבת בחירה
         self.replace_option = QComboBox()
         self.replace_option.addItems(["נקודה ונקודותיים", "ע\"א וע\"ב"])
-        layout.addWidget(self.replace_option)
+        self.replace_option.setStyleSheet("""
+            QComboBox {
+                border: 2px solid black;
+                border-radius: 15px;
+                padding: 5px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+            }
+        """)
+        self.replace_option.setFixedWidth(200)
+        
+        # מיכל למרכוז תיבת הבחירה
+        combo_container = QHBoxLayout()
+        combo_container.addStretch()
+        combo_container.addWidget(self.replace_option)
+        combo_container.addStretch()
+        layout.addLayout(combo_container)
+
+        # מרווח קטן
+        layout.addSpacing(15)
 
         # כפתור הפעלה
         run_button = QPushButton("בצע החלפה")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(40)
-        run_button.setStyleSheet("font-size: 25px;")
-        layout.addWidget(run_button)
+        run_button.setStyleSheet("""
+            QPushButton {
+                background-color: #eaeaea;
+                border-radius: 15px;
+                padding: 5px;
+                font-family: "Segoe UI", Arial;
+                font-weight: bold;
+                font-size: 12px;
+                min-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #d0d0d0;
+            }
+        """)
+        
+        # מיכל למרכוז הכפתור
+        button_container = QHBoxLayout()
+        button_container.addStretch()
+        button_container.addWidget(run_button)
+        button_container.addStretch()
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בסוף
+        layout.addStretch()
 
         self.setLayout(layout)
+
+
 
     def set_file_path(self, path):
         self.file_path = path
@@ -673,72 +1002,144 @@ class AddPageNumberToHeading(QWidget):
         return QIcon(pixmap)
    
 # ==========================================
-# Script 4: שינוי רמת כותרת
+# Script 3: שינוי רמת כותרת(4 לשעבר)
 # ==========================================
 class ChangeHeadingLevel(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self.file_path = ""  # הגדרת נתיב קובץ ריק
-        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.file_path = ""
         self.setWindowTitle("שינוי רמת כותרת")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 550, 300)
+        #self.setGeometry(100, 100, 500, 400)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
 
-        # רמת כותרת נוכחית
-        current_level_layout = QHBoxLayout()
-        current_level_label = QLabel("רמת כותרת נוכחית:")
-        current_level_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        current_level_label.setStyleSheet("font-size: 20px;")
-        
-        self.current_level_var = QComboBox()
-        self.current_level_var.setStyleSheet("font-size: 20px;")
-        self.current_level_var.setFixedWidth(70)
-        self.current_level_var.addItems([str(i) for i in range(1, 10)])
-        self.current_level_var.setCurrentText("2")
-        
-        current_level_layout.addWidget(self.current_level_var, alignment=Qt.AlignRight)
-        current_level_layout.addWidget(current_level_label)
-        layout.addLayout(current_level_layout)
-
-        # רמת כותרת חדשה
-        new_level_layout = QHBoxLayout()
-        new_level_label = QLabel("רמת כותרת חדשה:")
-        new_level_label.setStyleSheet("font-size: 20px;")
-        
-        self.new_level_var = QComboBox()
-        self.new_level_var.setStyleSheet("font-size: 20px;")
-        self.new_level_var.setFixedWidth(70)
-        self.new_level_var.addItems([str(i) for i in range(1, 10)])
-        self.new_level_var.setCurrentText("3")
-        
-        new_level_layout.addWidget(self.new_level_var, alignment=Qt.AlignRight)
-        new_level_layout.addWidget(new_level_label)
-        layout.addLayout(new_level_layout)
-
-        # הסבר למשתמש
+        # הסבר למשתמש - עכשיו בחלק העליון עם גוון אדום
         explanation = QLabel(
             "שים לב!\n"
             "הכותרות יוחלפו מרמה נוכחית לרמה החדשה.\n"
             "למשל: מ-H2 ל-H3"
         )
+        explanation.setStyleSheet("""
+            QLabel {
+                color: #8B0000;  /* צבע טקסט אדום כהה */
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #FFE4E1;  /* רקע אדום בהיר */
+                border: 2px solid #CD5C5C;  /* מסגרת אדומה */
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
         explanation.setAlignment(Qt.AlignCenter)
-        explanation.setStyleSheet("font-size: 18px; color: #666; margin: 20px 0;")
         explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
+        # עיצוב משותף לתוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """
+
+        # עיצוב משותף לקומבו-בוקסים
+        combo_style = """
+            QComboBox {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 70px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2b4c7e;
+                margin-right: 5px;
+            }
+        """
+
+        # רמת כותרת נוכחית - עכשיו בסידור אנכי
+        current_level_container = QVBoxLayout()
+        current_level_label = QLabel("רמת כותרת נוכחית:")
+        current_level_label.setStyleSheet(label_style)
+        
+        self.current_level_var = QComboBox()
+        self.current_level_var.addItems([str(i) for i in range(1, 10)])
+        self.current_level_var.setCurrentText("2")
+        self.current_level_var.setStyleSheet(combo_style)
+        
+        current_level_container.addWidget(current_level_label, alignment=Qt.AlignCenter)
+        current_level_container.addWidget(self.current_level_var, alignment=Qt.AlignCenter)
+        layout.addLayout(current_level_container)
+
+        # רמת כותרת חדשה - עכשיו בסידור אנכי
+        new_level_container = QVBoxLayout()
+        new_level_label = QLabel("רמת כותרת חדשה:")
+        new_level_label.setStyleSheet(label_style)
+        
+        self.new_level_var = QComboBox()
+        self.new_level_var.addItems([str(i) for i in range(1, 10)])
+        self.new_level_var.setCurrentText("3")
+        self.new_level_var.setStyleSheet(combo_style)
+        
+        new_level_container.addWidget(new_level_label, alignment=Qt.AlignCenter)
+        new_level_container.addWidget(self.new_level_var, alignment=Qt.AlignCenter)
+        layout.addLayout(new_level_container)
+
         # כפתור הפעלה
+        button_container = QHBoxLayout()
         run_button = QPushButton("שנה רמת כותרת")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(50)
-        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
-        layout.addWidget(run_button)
+        run_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
+        """)
+        button_container.addStretch(1)
+        button_container.addWidget(run_button)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
 
         self.setLayout(layout)
 
@@ -834,65 +1235,149 @@ class ChangeHeadingLevel(QWidget):
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
 # ==========================================
-# Script 5: הדגשת מילה ראשונה וניקוד בסוף קטע
+# Script 4: הדגשת מילה ראשונה וניקוד בסוף קטע (5 לשעבר)
 # ==========================================
 class EmphasizeAndPunctuate(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self.file_path = ""  # הגדרת נתיב קובץ ריק
-        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.file_path = ""
         self.setWindowTitle("הדגשה וניקוד")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 550, 350)
+        #self.setGeometry(100, 100, 500, 400)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
 
-        # בחירה להוספת נקודה או נקודותיים
-        ending_layout = QHBoxLayout()
-        ending_label = QLabel("בחר פעולה לסוף קטע:")
-        ending_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        ending_label.setStyleSheet("font-size: 20px;")
-        
-        self.ending_var = QComboBox()
-        self.ending_var.setStyleSheet("font-size: 20px;")
-        self.ending_var.addItems(["הוסף נקודותיים", "הוסף נקודה", "ללא שינוי"])
-        self.ending_var.setFixedWidth(170)
-        
-        ending_layout.addWidget(self.ending_var, alignment=Qt.AlignRight)
-        ending_layout.addWidget(ending_label)
-        layout.addLayout(ending_layout)
-
-        # הדגשת תחילת קטע
-        self.emphasize_var = QCheckBox("הדגש את תחילת הקטעים")
-        self.emphasize_var.setStyleSheet("font-size: 20px;")
-        self.emphasize_var.setChecked(True)
-        layout.addWidget(self.emphasize_var)
-
-        # הסבר למשתמש
+        # הסבר למשתמש בחלק העליון - בירוק בהיר
         explanation = QLabel(
-            "הסבר:\n"
+            "הסבר:\n\n"
             "• הדגשת תחילת קטעים: מדגיש את המילה הראשונה בקטעים\n"
             "• הוספת סימן סוף: מוסיף נקודה או נקודותיים בסוף קטעים ארוכים"
         )
-        explanation.setStyleSheet("font-size: 16px; color: #666; margin: 15px 0;")
-        explanation.setWordWrap(True)
+        explanation.setStyleSheet("""
+            QLabel {
+                color: #1e4620;  /* ירוק כהה לטקסט */
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #e8f5e9;  /* ירוק בהיר לרקע */
+                border: 2px solid #81c784;  /* ירוק בינוני למסגרת */
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
         explanation.setAlignment(Qt.AlignCenter)
+        explanation.setWordWrap(True)
         layout.addWidget(explanation)
 
+        # עיצוב משותף לתוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """
+
+        # עיצוב משותף לקומבו-בוקסים
+        combo_style = """
+            QComboBox {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2b4c7e;
+                margin-right: 5px;
+            }
+        """
+
+        # בחירה להוספת נקודה או נקודותיים
+        ending_container = QVBoxLayout()
+        ending_label = QLabel("בחר פעולה לסוף קטע:")
+        ending_label.setStyleSheet(label_style)
+        
+        self.ending_var = QComboBox()
+        self.ending_var.addItems(["הוסף נקודותיים", "הוסף נקודה", "ללא שינוי"])
+        self.ending_var.setStyleSheet(combo_style)
+        self.ending_var.setFixedWidth(170)
+        
+        ending_container.addWidget(ending_label, alignment=Qt.AlignCenter)
+        ending_container.addWidget(self.ending_var, alignment=Qt.AlignCenter)
+        layout.addLayout(ending_container)
+
+        # הדגשת תחילת קטע
+        self.emphasize_var = QCheckBox("הדגש את תחילת הקטעים")
+        self.emphasize_var.setStyleSheet("""
+            QCheckBox {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QCheckBox::indicator {
+                width: 20px;
+                height: 20px;
+            }
+        """)
+        self.emphasize_var.setChecked(True)
+        layout.addWidget(self.emphasize_var, alignment=Qt.AlignCenter)
+
         # כפתור הפעלה
+        button_container = QHBoxLayout()
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(50)
-        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
-        layout.addWidget(run_button)
+        run_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
+        """)
+        button_container.addStretch(1)
+        button_container.addWidget(run_button)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
 
         self.setLayout(layout)
-
+        
     def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
         if not file_path or not os.path.isfile(file_path):
@@ -1001,32 +1486,93 @@ class EmphasizeAndPunctuate(QWidget):
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
 # ==========================================
-# Script 6: יצירת כותרות לעמוד ב
+# Script 5: יצירת כותרות לעמוד ב (6 לשעבר)
 # ==========================================
 class CreatePageBHeaders(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self.file_path = ""  # הגדרת נתיב קובץ ריק
-        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.file_path = ""
         self.setWindowTitle("יצירת כותרות עמוד ב")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 550, 350)
+        #self.setGeometry(100, 100, 500, 400)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
 
-        # בחירת סוג הכותרת
-        header_type_layout = QHBoxLayout()
+        # הסבר למשתמש בחלק העליון - בירוק בהיר
+        explanation = QLabel(
+            "הסבר:\n\n"
+            "• התוכנה תוסיף כותרת 'עמוד ב' לפני קטעים ללא כותרת\n"
+            "• ניתן לבחור סוג כותרת ורמת כותרת שונים"
+        )
+        explanation.setStyleSheet("""
+            QLabel {
+                color: #1e4620;  /* ירוק כהה לטקסט */
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #e8f5e9;  /* ירוק בהיר לרקע */
+                border: 2px solid #81c784;  /* ירוק בינוני למסגרת */
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
+        explanation.setAlignment(Qt.AlignCenter)
+        explanation.setWordWrap(True)
+        layout.addWidget(explanation)
+
+        # עיצוב משותף לתוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """
+
+        # עיצוב משותף לקומבו-בוקסים
+        combo_style = """
+            QComboBox {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2b4c7e;
+                margin-right: 5px;
+            }
+        """
+
+        # סוג כותרת ורמת כותרת באותה שורה
+        headers_container = QHBoxLayout()
+
+        # קונטיינר לסוג כותרת
+        header_type_container = QVBoxLayout()
         header_type_label = QLabel("סוג כותרת:")
-        header_type_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        header_type_label.setStyleSheet("font-size: 20px;")
+        header_type_label.setStyleSheet(label_style)
         
         self.header_type_var = QComboBox()
-        self.header_type_var.setStyleSheet("font-size: 20px;")
         self.header_type_var.addItems([
             "עמוד ב", 
             "עמוד ב ע\"א", 
@@ -1034,47 +1580,69 @@ class CreatePageBHeaders(QWidget):
             "עמוד ב'", 
             "עמוד ב׳"
         ])
+        self.header_type_var.setStyleSheet(combo_style)
         self.header_type_var.setFixedWidth(170)
         
-        header_type_layout.addWidget(self.header_type_var, alignment=Qt.AlignRight)
-        header_type_layout.addWidget(header_type_label)
-        layout.addLayout(header_type_layout)
+        header_type_container.addWidget(header_type_label, alignment=Qt.AlignCenter)
+        header_type_container.addWidget(self.header_type_var, alignment=Qt.AlignCenter)
 
-        # רמת כותרת
-        level_layout = QHBoxLayout()
+        # קונטיינר לרמת כותרת
+        level_container = QVBoxLayout()
         level_label = QLabel("רמת כותרת:")
-        level_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        level_label.setStyleSheet("font-size: 20px;")
+        level_label.setStyleSheet(label_style)
         
         self.level_var = QComboBox()
-        self.level_var.setStyleSheet("font-size: 20px;")
         self.level_var.addItems([str(i) for i in range(2, 7)])
         self.level_var.setCurrentText("3")
-        self.level_var.setFixedWidth(70)
+        self.level_var.setStyleSheet(combo_style)
+        self.level_var.setFixedWidth(100)
         
-        level_layout.addWidget(self.level_var, alignment=Qt.AlignRight)
-        level_layout.addWidget(level_label)
-        layout.addLayout(level_layout)
+        level_container.addWidget(level_label, alignment=Qt.AlignCenter)
+        level_container.addWidget(self.level_var, alignment=Qt.AlignCenter)
 
-        # הסבר למשתמש
-        explanation = QLabel(
-            "הסבר:\n"
-            "• התוכנה תוסיף כותרת 'עמוד ב' לפני קטעים ללא כותרת\n"
-            "• ניתן לבחור סוג כותרת ורמת כותרת שונים"
-        )
-        explanation.setStyleSheet("font-size: 16px; color: #666; margin: 15px 0;")
-        explanation.setWordWrap(True)
-        explanation.setAlignment(Qt.AlignCenter)
-        layout.addWidget(explanation)
+        # הוספת מרווחים גמישים בין האלמנטים
+        headers_container.addStretch(1)
+        headers_container.addLayout(header_type_container)
+        headers_container.addStretch(1)
+        headers_container.addLayout(level_container)
+        headers_container.addStretch(1)
+        
+        layout.addLayout(headers_container)
 
         # כפתור הפעלה
+        button_container = QHBoxLayout()
         run_button = QPushButton("הפעל")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(50)
-        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
-        layout.addWidget(run_button)
+        run_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
+        """)
+        button_container.addStretch(1)
+        button_container.addWidget(run_button)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
 
         self.setLayout(layout)
+
 
     def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
@@ -1175,72 +1743,178 @@ class CreatePageBHeaders(QWidget):
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
 # ==========================================
-# Script 7: החלפת כותרות לעמוד ב
+# Script 6: החלפת כותרות לעמוד ב (7 לשעבר)
 # ==========================================
 class ReplacePageBHeaders(QWidget):
-    changes_made = pyqtSignal()  # הוספת סיגנל
+    changes_made = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self.file_path = "" 
-        self.setStyleSheet(GLOBAL_STYLE)  # שימוש בעיצוב הגלובלי
+        self.file_path = ""
         self.setWindowTitle("החלפת כותרות ל'עמוד ב'")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 550, 350)
+        #self.setGeometry(100, 100, 500, 500)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
-        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
 
-        # הסבר למשתמש
-        explanation = QLabel(
-            "שים לב!\nהתוכנה פועלת רק אם הדפים והעמודים הוגדרו כבר ככותרות\n"
-            "[לא משנה באיזו רמת כותרת]\nכגון:  <h3>עמוד ב</h3> או: <h2>עמוד ב</h2> וכן הלאה\n\n"
-            "זהירות!\nבדוק היטב שלא פספסת שום כותרת של 'דף' לפני שאתה מריץ תוכנה זו\n"
+        # הסבר ראשון - שים לב (באדום)
+        attention = QLabel(
+            "שים לב!\n\n"
+            "התוכנה פועלת רק אם הדפים והעמודים הוגדרו כבר ככותרות\n"
+            "[לא משנה באיזו רמת כותרת]\n"
+            "כגון:  <h3>עמוד ב</h3> או: <h2>עמוד ב</h2> וכן הלאה"
+        )
+        attention.setStyleSheet("""
+            QLabel {
+                color: #8B0000;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #FFE4E1;
+                border: 2px solid #CD5C5C;
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
+        attention.setAlignment(Qt.AlignCenter)
+        attention.setWordWrap(True)
+        layout.addWidget(attention)
+
+        # הסבר שני - זהירות (באדום)
+        warning = QLabel(
+            "זהירות!\n\n"
+            "בדוק היטב שלא פספסת שום כותרת של 'דף' לפני שאתה מריץ תוכנה זו\n"
             "כי במקרה של פספוס, הכותרת 'עמוד ב' שאחרי הפספוס תהפך לכותרת שגויה"
         )
-        explanation.setAlignment(Qt.AlignCenter)
-        explanation.setStyleSheet("font-size: 18px; color: #666; margin-bottom: 20px;")
-        explanation.setWordWrap(True)
-        layout.addWidget(explanation)
+        warning.setStyleSheet("""
+            QLabel {
+                color: #8B0000;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #FFE4E1;
+                border: 2px solid #CD5C5C;
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
+        warning.setAlignment(Qt.AlignCenter)
+        warning.setWordWrap(True)
+        layout.addWidget(warning)
+
+        # עיצוב משותף לתוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin-bottom: 5px;
+            }
+        """
+
+        # עיצוב משותף לקומבו-בוקסים
+        combo_style = """
+            QComboBox {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 5px 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                background-color: white;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox::down-arrow {
+                image: none;
+                border-left: 5px solid transparent;
+                border-right: 5px solid transparent;
+                border-top: 5px solid #2b4c7e;
+                margin-right: 5px;
+            }
+        """
 
         # סוג ההחלפה
-        replace_layout = QHBoxLayout()
+        replace_container = QVBoxLayout()
         replace_label = QLabel("בחר את סוג ההחלפה:")
-        replace_label.setStyleSheet("font-size: 20px;")
-        replace_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        replace_label.setStyleSheet(label_style)
         
         self.replace_type = QComboBox()
-        self.replace_type.setFixedWidth(140)
-        self.replace_type.setStyleSheet("font-size: 20px;")
         self.replace_type.addItems(["נקודותיים", "ע\"ב"])
+        self.replace_type.setStyleSheet(combo_style)
+        self.replace_type.setFixedWidth(140)
         
-        replace_layout.addWidget(self.replace_type, alignment=Qt.AlignRight)
-        replace_layout.addWidget(replace_label)
-        layout.addLayout(replace_layout)
+        replace_container.addWidget(replace_label, alignment=Qt.AlignCenter)
+        replace_container.addWidget(self.replace_type, alignment=Qt.AlignCenter)
+        layout.addLayout(replace_container)
 
         # דוגמאות
         example1 = QLabel("לדוגמא:\nדף ב:   דף ג:   דף ד:   דף ה:\nוכן הלאה")
+        example1.setStyleSheet("""
+            QLabel {
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                color: #666;
+            }
+        """)
         example1.setAlignment(Qt.AlignCenter)
-        example1.setStyleSheet("font-size: 16px; margin: 10px 0;")
-        example1.setWordWrap(True)
         layout.addWidget(example1)
 
         example2 = QLabel("או:\nדף ב ע\"ב   דף ג ע\"ב   דף ד ע\"ב   דף ה ע\"ב\nוכן הלאה")
+        example2.setStyleSheet("""
+            QLabel {
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                color: #666;
+            }
+        """)
         example2.setAlignment(Qt.AlignCenter)
-        example2.setStyleSheet("font-size: 16px; margin: 10px 0;")
-        example2.setWordWrap(True)
         layout.addWidget(example2)
 
         # כפתור הפעלה
+        button_container = QHBoxLayout()
         run_button = QPushButton("בצע החלפה")
         run_button.clicked.connect(self.run_script)
-        run_button.setFixedHeight(50)
-        run_button.setStyleSheet("font-size: 25px; margin-top: 20px;")
-        layout.addWidget(run_button)
+        run_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
+        """)
+        button_container.addStretch(1)
+        button_container.addWidget(run_button)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
 
         self.setLayout(layout)
+
 
     def set_file_path(self, file_path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
@@ -1340,6 +2014,14 @@ class ReplacePageBHeaders(QWidget):
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(base64_string))
         return QIcon(pixmap)
+
+
+
+
+
+
+
+    
    
 def create_labeled_widget(label_text, widget):
     """יוצר widget עם תווית"""
@@ -1718,19 +2400,42 @@ class CheckHeadingErrorsOriginal(QWidget):
         """טעינת אייקון מקידוד Base64"""
         pixmap = QPixmap()
         pixmap.loadFromData(base64.b64decode(icon_base64))
-        return QIcon(pixmap)   
+        return QIcon(pixmap)
+    
 # ==========================================
-# Script 9: בדיקת שגיאות בכותרות מותאם לספרים על השס
+# Script 8: בדיקת שגיאות בכותרות מותאם לספרים על השס (9 לשעבר)
 # ==========================================
 
 def create_labeled_widget(label_text, widget):
-    """יוצר widget עם תווית"""
+    """יוצר widget עם תווית בעיצוב אחיד"""
     container = QWidget()
     v_layout = QVBoxLayout()
     v_layout.setContentsMargins(0, 0, 0, 0)
-    v_layout.setSpacing(2)
+    v_layout.setSpacing(5)
+    
     label = QLabel(label_text)
-    label.setStyleSheet("font-size: 18px;")
+    label.setStyleSheet("""
+        QLabel {
+            color: #1a365d;
+            font-family: "Segoe UI", Arial;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+    """)
+    
+    # עיצוב ל-QTextEdit
+    widget.setStyleSheet("""
+        QTextEdit {
+            border: 2px solid #2b4c7e;
+            border-radius: 15px;
+            padding: 10px;
+            background-color: white;
+            font-family: "Segoe UI", Arial;
+            font-size: 12px;
+        }
+    """)
+    
     v_layout.addWidget(label)
     v_layout.addWidget(widget)
     container.setLayout(v_layout)
@@ -2106,7 +2811,7 @@ class CheckHeadingErrorsCustom(QWidget):
         pixmap.loadFromData(base64.b64decode(icon_base64))
         return QIcon(pixmap)    
 # ==========================================
-# Script 10: המרת תמונה לטקסט
+# Script 9: המרת תמונה לטקסט 10(לשעבר)
 # ==========================================
 
 class ImageToHtmlApp(QtWidgets.QWidget):
@@ -2115,71 +2820,168 @@ class ImageToHtmlApp(QtWidgets.QWidget):
         self.file_path = "" 
         self.setWindowTitle("המרת תמונה לטקסט")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 500, 500)
+        #self.setGeometry(100, 100, 350,350)
+        self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
 
         self.layout = QtWidgets.QVBoxLayout(self)
+        self.layout.setContentsMargins(15, 15, 15, 15)  
         
+        # עיצוב תוויות
+        label_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 10px;
+            }
+        """
+
+        # עיצוב כפתורים
+        button_style = """
+           QPushButton {
+               border-radius: 15px;
+               padding: 5px;
+               background-color: #eaeaea;
+               color: black;
+               font-weight: bold;
+               font-family: "Segoe UI", Arial;
+               font-size: 11px;
+               min-height: 30px;
+              max-height: 30px;
+             }
+           QPushButton:hover {
+               background-color: #b7b5b5;
+           }
+           QPushButton:disabled {
+               background-color: #cccccc;
+               color: #666666;
+             }
+          """
+
+        # תווית מידע
         self.information_label = QLabel("לפניך מספר אפשרויות לבחירת התמונה\nבחר אחת מהן")
         self.information_label.setAlignment(Qt.AlignCenter)
-        self.information_label.setStyleSheet("font-size: 20px;")
+        self.information_label.setStyleSheet(label_style)
         self.layout.addWidget(self.information_label)
 
-        # יצירת תווית להנחיה
+        # אזור גרירה
         self.label = QLabel("גרור ושחרר את הקובץ", self)
         self.label.setAlignment(Qt.AlignCenter)
-        self.label.setStyleSheet("border: 2px dashed gray; font-size: 20px; padding: 40px;")
+        self.label.setStyleSheet("""
+            QLabel {
+                border: 2px dashed #2b4c7e;
+                border-radius: 15px;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 40px;
+                background-color: #f8f9fa;
+            }
+        """)
         self.layout.addWidget(self.label)
 
+        # תווית הוראות
         self.instruction_label = QtWidgets.QLabel("הדבק נתיב קובץ [או קישור מקוון לתמונה]\nאו הדבק את התמונה (Ctrl+V):")
         self.instruction_label.setAlignment(Qt.AlignCenter)
-        self.instruction_label.setStyleSheet("font-size: 20px;")
+        self.instruction_label.setStyleSheet(label_style)
         self.layout.addWidget(self.instruction_label)
 
+        # תיבת טקסט
         self.url_edit = QtWidgets.QLineEdit()
-        self.url_edit.textChanged.connect(self.on_text_changed)  # מאזין לשינויים בטקסט
+        self.url_edit.setStyleSheet("""
+            QLineEdit {
+                border: 2px solid #2b4c7e;
+                border-radius: 15px;
+                padding: 10px;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                min-height: 20px;
+            }
+            QLineEdit:focus {
+                border-color: #1a73e8;
+            }
+        """)
+        self.url_edit.textChanged.connect(self.on_text_changed)
         self.url_edit.returnPressed.connect(self.convert_image)
         self.layout.addWidget(self.url_edit)
 
-        self.add_files_button = QPushButton('בחר קובץ דרך סייר הקבצים', self)
+        # כפתורים
+        # כפתור עיון
+        browse_container = QHBoxLayout()
+        self.add_files_button = QPushButton('עיון', self)
+        self.add_files_button.setStyleSheet(button_style)
+        self.add_files_button.setFixedSize(80, 30)
         self.add_files_button.clicked.connect(self.open_file_dialog)
-        self.add_files_button.setStyleSheet("font-size: 20px;")
-        self.layout.addWidget(self.add_files_button)
+        browse_container.addStretch(1)
+        browse_container.addWidget(self.add_files_button)
+        browse_container.addStretch(1)
+        self.layout.addLayout(browse_container)
 
+        # כפתור המרה
+        convert_container = QHBoxLayout()
         self.convert_btn = QtWidgets.QPushButton("המר")
         self.convert_btn.setEnabled(False)
+        self.convert_btn.setStyleSheet(button_style)
+        self.convert_btn.setFixedSize(80, 30)
         self.convert_btn.clicked.connect(self.convert_image)
-        self.convert_btn.setStyleSheet("font-size: 25px;")
-        self.layout.addWidget(self.convert_btn)
+        convert_container.addStretch(1)
+        convert_container.addWidget(self.convert_btn)
+        convert_container.addStretch(1)
+        self.layout.addLayout(convert_container)
+
+        # תוויות תוצאה
+        success_label_style = """
+            QLabel {
+                color: #28a745;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 10px;
+                background-color: #e8f5e9;
+                border-radius: 10px;
+            }
+        """
 
         self.nextInFocusChain = QLabel("ההמרה בוצעה בהצלחה!")
         self.nextInFocusChain.setVisible(False)
         self.nextInFocusChain.setAlignment(Qt.AlignCenter)
-        self.nextInFocusChain.setStyleSheet("font-size: 25px;")
+        self.nextInFocusChain.setStyleSheet(success_label_style)
         self.layout.addWidget(self.nextInFocusChain)
         
-        self.copy_btn = QtWidgets.QPushButton("לחץ כאן להעתקת הטקסט")
+        # כפתור העתקה
+        copy_container = QHBoxLayout()
+        self.copy_btn = QtWidgets.QPushButton("העתק")
         self.copy_btn.setEnabled(False)
+        self.copy_btn.setStyleSheet(button_style)
+        self.copy_btn.setFixedSize(80, 30)
         self.copy_btn.clicked.connect(self.copy_to_clipboard)
-        self.copy_btn.setStyleSheet("font-size: 25px;")
-        self.layout.addWidget(self.copy_btn)
+        copy_container.addStretch(1)
+        copy_container.addWidget(self.copy_btn)
+        copy_container.addStretch(1)
+        self.layout.addLayout(copy_container)
 
-        self.cop = QLabel("הטקסט הועתק ללוח, ניתן להדביקו במסמך")
+        # תווית אישור העתקה
+        self.cop = QLabel("הטקסט הועתק ללוח, ניתן להדביקו במסמך")  # הוספת התווית החסרה
         self.cop.setVisible(False)
         self.cop.setAlignment(Qt.AlignCenter)
-        self.cop.setStyleSheet("font-size: 25px;")
-        self.layout.addWidget(self.cop)
-        
-        # כפתורים שיוצגו לאחר ההמרה
-        self.convert_new_button = QPushButton('המרת תמונה נוספת', self)
+        self.cop.setStyleSheet(success_label_style)
+        self.layout.addWidget(self.cop)        
+
+        # כפתור המרה חדשה
+        new_convert_container = QHBoxLayout()
+        self.convert_new_button = QPushButton('המרה חדשה', self)
         self.convert_new_button.setVisible(False)
+        self.convert_new_button.setStyleSheet(button_style)
+        self.convert_new_button.setFixedSize(100, 30)
         self.convert_new_button.clicked.connect(self.reset_for_new_convert)
-        self.convert_new_button.setStyleSheet("font-size: 20px;")
-        self.layout.addWidget(self.convert_new_button)
+        new_convert_container.addStretch(1)
+        new_convert_container.addWidget(self.convert_new_button)
+        new_convert_container.addStretch(1)
+        self.layout.addLayout(new_convert_container)
 
         self.setAcceptDrops(True)
         self.img_data = None
-        
-        # משתנה לאחסון נתיבי קבצי תמונה
         self.image_files = []
 
     def on_text_changed(self):
@@ -2330,7 +3132,7 @@ class ImageToHtmlApp(QtWidgets.QWidget):
         return QIcon(pixmap)
 
 # ==========================================
-# Script 11: תיקון שגיאות נפוצות
+# Script 10: תיקון שגיאות נפוצות (11 לשעבר)
 # ==========================================
 
 class TextCleanerApp(QWidget):
@@ -2343,26 +3145,99 @@ class TextCleanerApp(QWidget):
         self.setWindowTitle("תיקון שגיאות נפוצות")
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
         self.setLayoutDirection(Qt.RightToLeft)
-        self.resize(500, 400)
+        #self.setGeometry(100, 100, 500, 500)
+        self.setFixedWidth(600)
+        self.setWindowModality(Qt.ApplicationModal)
+        self.setWindowFlags(Qt.Dialog | Qt.MSWindowsFixedSizeDialogHint)
         self.initUI()
 
     def initUI(self):
         layout = QVBoxLayout()
-        
+        layout.setContentsMargins(15, 15, 15, 15)
+        layout.setSpacing(15)
+
+        # הסבר למשתמש בחלק העליון - באדום
+        explanation = QLabel(
+            "שים לב!\n\n"
+            "התוכנה תיקון שגיאות נפוצות בטקסט.\n"
+            "סמן את האפשרויות הרצויות ולחץ על 'הרץ כעת'.\n"
+            "ניתן לבטל את השינוי האחרון באמצעות הכפתור 'בטל שינוי אחרון'."
+        )
+        explanation.setStyleSheet("""
+            QLabel {
+                color: #8B0000;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 20px;
+                background-color: #FFE4E1;
+                border: 2px solid #CD5C5C;
+                border-radius: 15px;
+                font-weight: bold;
+            }
+        """)
+        explanation.setAlignment(Qt.AlignCenter)
+        explanation.setWordWrap(True)
+        layout.addWidget(explanation)
+
         # כפתורי בחירת הכל/ביטול הכל
-        buttonLayout = QHBoxLayout()
+        button_container = QHBoxLayout()
+        
         self.selectAllBtn = QPushButton("בחר הכל")
-        self.selectAllBtn.setStyleSheet("font-size: 14px;")
         self.selectAllBtn.clicked.connect(self.selectAll)
+        self.selectAllBtn.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+            QPushButton:pressed {
+                background-color: #a0a0a0;
+            }
+        """)
         
         self.deselectAllBtn = QPushButton("בטל הכל")
-        self.deselectAllBtn.setStyleSheet("font-size: 14px;")
         self.deselectAllBtn.clicked.connect(self.deselectAll)
+        self.deselectAllBtn.setStyleSheet(self.selectAllBtn.styleSheet())
         
-        buttonLayout.addWidget(self.selectAllBtn)
-        buttonLayout.addWidget(self.deselectAllBtn)
-        layout.addLayout(buttonLayout)
-        
+        button_container.addStretch(1)
+        button_container.addWidget(self.selectAllBtn)
+        button_container.addWidget(self.deselectAllBtn)
+        button_container.addStretch(1)
+        layout.addLayout(button_container)
+
+        # קונטיינר לתיבות הסימון
+        checkbox_style = """
+            QCheckBox {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 5px;
+                spacing: 10px;
+            }
+            QCheckBox::indicator {
+                width: 20px;
+                height: 20px;
+                border: 2px solid #2b4c7e;
+                border-radius: 5px;
+            }
+            QCheckBox::indicator:unchecked {
+                background-color: white;
+            }
+            QCheckBox::indicator:checked {
+                background-color: #2b4c7e;
+                image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='white' d='M3.5 8.5l3 3 6-6-1-1-5 5-2-2z'/%3E%3C/svg%3E");
+            }
+        """
         # תיבות סימון לאפשרויות שונות
         self.checkBoxes = {
             "remove_empty_lines": QCheckBox("מחיקת שורות ריקות"),
@@ -2375,24 +3250,76 @@ class TextCleanerApp(QWidget):
         }
 
         # הוספת תיבות הסימון לממשק
+        checkbox_container = QVBoxLayout()
         for checkbox in self.checkBoxes.values():
-            checkbox.setStyleSheet("font-size: 14px;")
+            checkbox.setStyleSheet(checkbox_style)
             checkbox.setChecked(True)
-            layout.addWidget(checkbox)
-        
+            checkbox_container.addWidget(checkbox)
+        layout.addLayout(checkbox_container)
+
         # כפתורי הפעלה וביטול
+        action_buttons_container = QVBoxLayout()
+        
         self.cleanBtn = QPushButton("הרץ כעת")
-        self.cleanBtn.setStyleSheet("font-size: 14px;")
         self.cleanBtn.clicked.connect(self.runCleanText)
-        layout.addWidget(self.cleanBtn)
+        self.cleanBtn.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #4CAF50;  /* ירוק */
+                color: white;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #45a049;
+            }
+            QPushButton:pressed {
+                background-color: #3d8b40;
+            }
+        """)
         
         self.undoBtn = QPushButton("בטל שינוי אחרון")
-        self.undoBtn.setStyleSheet("font-size: 14px;")
         self.undoBtn.clicked.connect(self.undoChanges)
         self.undoBtn.setEnabled(False)
-        layout.addWidget(self.undoBtn)
+        self.undoBtn.setStyleSheet("""
+            QPushButton {
+                border-radius: 15px;
+                padding: 5px;
+                background-color: #f44336;  /* אדום */
+                color: white;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 12px;
+                min-height: 30px;
+                max-height: 30px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #da190b;
+            }
+            QPushButton:pressed {
+                background-color: #c41810;
+            }
+            QPushButton:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+        """)
         
+        action_buttons_container.addWidget(self.cleanBtn, alignment=Qt.AlignCenter)
+        action_buttons_container.addWidget(self.undoBtn, alignment=Qt.AlignCenter)
+        layout.addLayout(action_buttons_container)
+
+        # מרווח גמיש בתחתית
+        layout.addStretch()
+
         self.setLayout(layout)
+
 
     def set_file_path(self, path):
         """מקבלת את נתיב הקובץ מהחלון הראשי"""
@@ -2496,8 +3423,10 @@ class TextCleanerApp(QWidget):
 class MainMenu(QWidget):
     def __init__(self):
         super().__init__()
-        self.document_history = []  
+        self.document_history = []
+        self.redo_history = []        
         self.current_file_path = ""
+        self.current_index = -1        
         self.last_processor_title = ""
         self.current_version = "3.2"
         
@@ -2505,32 +3434,34 @@ class MainMenu(QWidget):
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
         self.setLayoutDirection(Qt.RightToLeft)
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 1200, 600)
+        self.setGeometry(100, 100, 1000, 600)
         self.init_ui()
 
         if sys.platform == 'win32':
             QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
-            
 
     def init_ui(self):
         main_layout = QHBoxLayout()
-        
+        main_layout.setSpacing(0)
+        main_layout.setContentsMargins(0, 0, 0, 0)
 
+        # מיכל ימני לכפתורים
         right_container = QWidget()
-        right_container.setFixedWidth(550)
+        right_container.setFixedWidth(300)
         right_layout = QVBoxLayout(right_container)
 
-        
         buttons_grid_widget = QWidget()
-        grid_layout = QGridLayout(buttons_grid_widget)  
-        grid_layout.setSpacing(10)
-        
+        buttons_grid_widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
+        grid_layout = QGridLayout(buttons_grid_widget)
+        grid_layout.setSpacing(5)
+
         # פאנל טקסט
         text_container = QWidget()
+        text_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         text_layout = QVBoxLayout(text_container)
-        text_layout.setContentsMargins(15, 15, 20, 10)
-        
-        # כפתורי פעולה
+        text_layout.setContentsMargins(15, 15, 0, 20)
+
+        # יצירת כפתורי פעולה
         action_buttons_layout = QHBoxLayout()
         
         # כפתור ביטול
@@ -2582,8 +3513,8 @@ class MainMenu(QWidget):
             border-radius: 10px;
         """)
         self.status_label.setAlignment(Qt.AlignCenter)
-        
 
+        # כפתור הוספת קובץ
         add_file_button = QPushButton("הוסף קובץ")
         add_file_button.setFixedSize(100, 40)
         add_file_button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -2602,6 +3533,7 @@ class MainMenu(QWidget):
         """)
         add_file_button.clicked.connect(self.select_file)
 
+        # הוספת כפתורי פעולה ללייאאוט
         action_buttons_layout.addWidget(add_file_button)
         action_buttons_layout.addStretch(1)
         action_buttons_layout.addWidget(self.status_label)
@@ -2610,10 +3542,18 @@ class MainMenu(QWidget):
         action_buttons_layout.addWidget(self.redo_button)
         action_buttons_layout.addWidget(self.save_button)
 
+        # יצירת תיבות הטקסט עם הטקסט הדוגמה
+        self.unmatched_regex_text = QTextEdit()
+        self.unmatched_regex_text.setReadOnly(True)
+        self.unmatched_regex_text.setHtml(DefaultTextContent.get_default_html())
+        self.unmatched_regex_text.setStyleSheet(DefaultTextContent.get_default_style())
+
+        self.unmatched_tags_text = QTextEdit()
+        self.unmatched_tags_text.setReadOnly(True)
+        self.unmatched_tags_text.setHtml(DefaultTextContent.get_default_html())
+        self.unmatched_tags_text.setStyleSheet(DefaultTextContent.get_default_style())
+
         # תצוגת טקסט
-        self.text_display = QtWidgets.QTextBrowser()
-        self.text_display.setReadOnly(True)
-        self.text_display.setLayoutDirection(Qt.RightToLeft)
         self.text_display = QtWidgets.QTextBrowser()
         self.text_display.setReadOnly(True)
         self.text_display.setLayoutDirection(Qt.RightToLeft)
@@ -2623,36 +3563,86 @@ class MainMenu(QWidget):
                 border: 2px solid black;
                 border-radius: 15px;
                 padding: 20px 40px;
-                font-family: "Segoe UI", Arial;
-                font-size: 14px;
+                font-family: "Frank Ruehl CLM",  "Segoe UI";
+                font-size: 18px;
                 line-height: 1.5;
             }
         """)
 
-        text_layout.insertLayout(0, action_buttons_layout)
-        text_layout.addWidget(self.text_display)
+        # יצירת כפתורי עריכה
+        text_bottom_buttons = QHBoxLayout()
+        text_bottom_buttons.setSpacing(10)
+        text_bottom_buttons.addSpacing(10)
 
-        
-        # רשימת כפתורים עם שמות הפונקציות
-        button_info = [
-            ("1\n\nיצירת כותרות\nלאוצריא\nהתוכנה הראשית", self.open_create_headers_otzria),
-            ("2\n\nיצירת כותרות\nלאותיות בודדות\n", self.open_create_single_letter_headers),
-            ("3\n\nהוספת\nמספר עמוד\nבכותרת הדף", self.open_add_page_number_to_heading),
-            ("4\n\nשינוי רמת כותרת\n\n", self.open_change_heading_level),
-            ("5\n\nהדגשת\nמילה ראשונה\nוניקוד בסוף קטע", self.open_emphasize_and_punctuate),
-            ("6\n\nיצירת כותרות\nלעמוד ב\n", self.open_create_page_b_headers),
-            ("7\n\nהחלפת כותרות\nלעמוד ב\n", self.open_replace_page_b_headers),
-            ("8\n\nבדיקת שגיאות\n\n", self.open_check_heading_errors_original),
-            ("9\n\nבדיקת שגיאות\nלספרים על השס\n", self.open_check_heading_errors_custom),
-            ("10\n\nהמרת תמונה\nלטקסט\n", self.open_Image_To_Html_App),
-            ("11\n\nתיקון\nשגיאות נפוצות\n", self.open_Text_Cleaner_App),
-            ("12\n\nנקודותיים ורווח\n\n", self.open_replace_colons_and_spaces),
+        # הגדרת כפתורי עריכה
+        buttons_data = [
+            ("קטן", self.button1_function),
+            ("גדול", self.button2_function),
+            ("נטוי", self.button3_function),
+            ("דגש", self.button4_function),
+            ("H6", self.button5_function),
+            ("H5", self.button6_function),
+            ("H4", self.button7_function),
+            ("H3", self.button8_function),
+            ("H2", self.button9_function),
+            ("H1", self.button10_function)
         ]
-        
+
+        button_style = """
+            QPushButton {
+                border-radius: 15px;
+                padding: 6px 12px;
+                background-color: #E8F0FE; 
+                color: #1a365d;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 7.5pt;
+                min-width: 20px;
+                min-height: 12px;
+                width: 12px;
+                height: 20px;
+                border: 1px solid #c2d3f0;
+            }
+            QPushButton:hover {
+                background-color: #d3e3fc; 
+            }
+            QPushButton:pressed {
+                background-color: #bbd1f8;
+                padding: 7px 11px 5px 13px;
+            }
+        """
+
+        # יצירת כפתורי עריכה
+        self.editing_buttons = []
+        for button_text, func in reversed(buttons_data):
+            button = QPushButton(button_text)
+            button.setFixedSize(40, 40)
+            button.setStyleSheet(button_style)
+            button.setCursor(QCursor(Qt.PointingHandCursor))
+            button.clicked.connect(func)
+            button.hide()
+            self.editing_buttons.insert(0, button)
+            text_bottom_buttons.addWidget(button)
+
+        text_bottom_buttons.addStretch(1)
+
+        # כפתורי תפריט
+        button_info = [
+            ("1\n\nיצירת כותרות לאוצריא", self.open_create_headers_otzria),
+            ("2\n\nיצירת כותרות לאותיות בודדות", self.open_create_single_letter_headers),
+            ("3\n\nשינוי רמת כותרת", self.open_change_heading_level),
+            ("4\n\nהדגשת מילה ראשונה וניקוד בסוף קטע", self.open_emphasize_and_punctuate),
+            ("5\n\nיצירת כותרות לעמוד ב", self.open_create_page_b_headers),
+            ("6\n\nהחלפת כותרות לעמוד ב", self.open_replace_page_b_headers),
+            ("7\n\nבדיקת שגיאות", self.open_check_heading_errors_original),
+            ("8\n בדיקת שגיאות לספרים על השס", self.open_check_heading_errors_custom),
+            ("9\n\nהמרת תמונה לטקסט", self.open_Image_To_Html_App),
+            ("10\n\nתיקון שגיאות נפוצות", self.open_Text_Cleaner_App),
+        ]
 
         for i, (text, func) in enumerate(button_info):
             button = QPushButton(text)
-            button.setFixedSize(170, 150)
+            button.setFixedSize(250, 70)
             button.clicked.connect(func)
             button.setStyleSheet("""
                 QPushButton {
@@ -2669,50 +3659,234 @@ class MainMenu(QWidget):
                     background-color: #b7b5b5;
                 }
             """)
+            grid_layout.addWidget(button, i, 0)
 
-            row = i // 3
-            col = i % 3
-            grid_layout.addWidget(button, row, col)
-
-
-
-        right_layout.addLayout(grid_layout) 
-        right_layout.addWidget(buttons_grid_widget)
-        #  layout כפתורים תחתון
+        # כפתורים תחתונים
         bottom_buttons_layout = QHBoxLayout()
         
-        # אודות
         about_button = QPushButton("i")
         about_button.setStyleSheet("font-weight: bold; font-size: 12pt;")
         about_button.setCursor(QCursor(Qt.PointingHandCursor))
         about_button.clicked.connect(self.open_about_dialog)
         about_button.setFixedSize(40, 40)
         
-        # עדכונים
-        update_button = QPushButton("⭳")  # סמל הורדה
+        update_button = QPushButton("⭳")
         update_button.setStyleSheet("""
             font-weight: bold; 
             font-size: 14pt;
         """)
         update_button.setCursor(QCursor(Qt.PointingHandCursor))
-        update_button.clicked.connect(self.check_for_updates)  
+        update_button.clicked.connect(self.check_for_updates)
         update_button.setFixedSize(40, 40)
         update_button.setToolTip("עדכונים")
-        
+
+        self.edit_button = QPushButton("✍")
+        self.edit_button.setStyleSheet("""
+            font-weight: bold; 
+            font-size: 14pt;
+        """)
+        self.edit_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.edit_button.setFixedSize(40, 40)
+        self.edit_button.setToolTip("עריכה")
+        self.edit_button.clicked.connect(self.edit_text)
 
         bottom_buttons_layout.addWidget(about_button)
         bottom_buttons_layout.addWidget(update_button)
-
+        bottom_buttons_layout.addSpacing(120)
+        bottom_buttons_layout.addWidget(self.edit_button)
         bottom_buttons_layout.addStretch()
 
+        # סידור סופי של הלייאאוטים
+        text_layout.insertLayout(0, action_buttons_layout)
+        text_layout.addLayout(text_bottom_buttons)
+        text_layout.addWidget(self.text_display)
+       
+
+        right_layout.addWidget(buttons_grid_widget)
         right_layout.addLayout(bottom_buttons_layout)
 
-
         main_layout.addWidget(right_container)
-        main_layout.addWidget(text_container, stretch=1)
-        
+        main_layout.addWidget(text_container)
+        main_layout.setStretchFactor(right_container, 1)
+        main_layout.setStretchFactor(text_container, 2)
 
         self.setLayout(main_layout)
+        
+       
+
+    def button1_function(self):
+        """הקטנת הטקסט המסומן"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<span style="font-size: smaller;">{selected_text}</span>')
+            self._safe_update_history(self.text_display.toHtml(), "קטן")
+
+    def button2_function(self):
+        """הגדלת הטקסט המסומן"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<span style="font-size: larger;">{selected_text}</span>')
+            self._safe_update_history(self.text_display.toHtml(), "גדול")
+
+    def button3_function(self):
+        """הפיכת הטקסט לנטוי"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<i>{selected_text}</i>')
+            self._safe_update_history(self.text_display.toHtml(), "נטוי")
+
+    def button4_function(self):
+        """הדגשת הטקסט"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<b>{selected_text}</b>')
+            self._safe_update_history(self.text_display.toHtml(), "דגש")
+
+    def button5_function(self):
+        """הוספת כותרת H6"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<h6>{selected_text}</h6>')
+            self._safe_update_history(self.text_display.toHtml(), "הH6")
+
+    def button6_function(self):
+        """הוספת כותרת H5"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<h5>{selected_text}</h5>')
+            self._safe_update_history(self.text_display.toHtml(), "H5")
+
+    def button7_function(self):
+        """הוספת כותרת H4"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<h4>{selected_text}</h4>')
+            self._safe_update_history(self.text_display.toHtml(), "הH4")
+
+    def button8_function(self):
+        """הוספת כותרת H3"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<h3>{selected_text}</h3>')
+            self._safe_update_history(self.text_display.toHtml(), "H3")
+
+    def button9_function(self):
+        """הוספת כותרת H2"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<h2>{selected_text}</h2>')
+            self._safe_update_history(self.text_display.toHtml(), "H2")
+
+    def button10_function(self):
+        """הוספת כותרת H1"""
+        cursor = self.text_display.textCursor()
+        if cursor.hasSelection():
+            selected_text = cursor.selectedText()
+            cursor.removeSelectedText()
+            cursor.insertHtml(f'<h1>{selected_text}</h1>')
+            self._safe_update_history(self.text_display.toHtml(), "H1")   
+        
+    def edit_text(self):
+        """פונקציה לניהול מצב העריכה בפאנל הקיים"""
+        is_editing_mode = self.editing_buttons[0].isHidden()
+        
+        # שינוי מצב העריכה של פאנל הטקסט
+        self.text_display.setReadOnly(not is_editing_mode)
+        
+        # שמירת המצב הנוכחי להיסטוריה אם נכנסים למצב עריכה
+        if is_editing_mode:
+            current_text = self.text_display.toPlainText()
+            self._safe_update_history(current_text, "כניסה למצב עריכה")
+            
+            # סגנון למצב עריכה
+            self.text_display.setStyleSheet("""
+                QTextEdit {
+                    background-color: white;
+                    border: 2px solid #2b4c7e;
+                    border-radius: 15px;
+                    padding: 20px 40px;
+                    font-family: "Segoe UI", Arial;
+                    font-size: 14px;
+                    line-height: 1.5;
+                }
+            """)
+            
+            # עדכון ממשק המשתמש למצב עריכה
+            self.edit_button.setText("✗")
+            self.edit_button.setToolTip("סגור מצב עריכה")
+            self.status_label.setText("מצב עריכה פעיל")
+            self.status_label.setStyleSheet("""
+                color: #2b4c7e;
+                font-size: 14px;
+                padding: 5px 15px;
+                background-color: #E8F0FE;
+                border-radius: 10px;
+            """)
+            
+            # הצגת כפתורי העריכה
+            for button in self.editing_buttons:
+                button.show()
+        
+        else:
+            # שמירת השינויים לפני יציאה ממצב עריכה
+            if self.current_file_path:
+                current_text = self.text_display.toPlainText()
+                self._safe_update_history(current_text, "יציאה ממצב עריכה")
+            
+            # סגנון למצב תצוגה
+            self.text_display.setStyleSheet("""
+                QTextEdit {
+                    background-color: transparent;
+                    border: 2px solid black;
+                    border-radius: 15px;
+                    padding: 20px 40px;
+                    font-family: "Frank Ruehl CLM" ,  "Segoe UI" ;
+                    font-size: 18px;
+                    line-height: 1.5;
+                }
+            """)
+            
+            # עדכון ממשק המשתמש למצב תצוגה
+            self.edit_button.setText("✍")
+            self.edit_button.setToolTip("עריכה")
+            self.status_label.setText("מצב תצוגה בלבד")
+            self.status_label.setStyleSheet("""
+                color: #666666;
+                font-size: 14px;
+                padding: 5px 15px;
+                background-color: transparent;
+                border-radius: 10px;
+            """)
+            
+            # הסתרת כפתורי העריכה
+            for button in self.editing_buttons:
+                button.hide()
+
+        # עדכון מצב הכפתורים
+        self.update_buttons_state()
+
+    def on_text_changed(self):
+        """מטפל בשינויים בטקסט במצב עריכה"""
+        if not self.text_display.isReadOnly():  # רק אם במצב עריכה
+            self.save_button.setEnabled(True)        
 
     def process_text(self, processor_widget):
         if not self.current_file_path:
@@ -2933,74 +4107,6 @@ class MainMenu(QWidget):
 
 
 
-    def open_about_dialog(self):
-        """פתיחת חלון 'אודות'"""
-        dialog = AboutDialog(self)
-        dialog.exec_()
-
-    def open_create_headers_otzria(self):
-        """פתיחת חלון יצירת כותרות לאוצריא"""
-        try:
-            self.create_headers_window = CreateHeadersOtZria(self)  # שים לב להעברת self כ-parent
-            self.last_processor_title = "יצירת כותרות לאוצריא"
-            self.create_headers_window.changes_made.connect(self.update_content_from_child)
-            self.create_headers_window.show()
-        except Exception as e:
-            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת החלון: {str(e)}")
-
-    def open_create_single_letter_headers(self):
-        self.create_single_letter_headers_window = CreateSingleLetterHeaders()
-        self.create_headers_window.changes_made.connect(self.update_content_from_child)
-        self.create_single_letter_headers_window.show()
-
-    def open_add_page_number_to_heading(self):
-        self.add_page_number_window = AddPageNumberToHeading()
-        self.create_headers_window.changes_made.connect(self.update_content_from_child)
-        self.add_page_number_window.show()
-
-    def open_change_heading_level(self):
-        self.change_heading_level_window = ChangeHeadingLevel()
-        self.create_headers_window.changes_made.connect(self.update_content_from_child)
-        self.change_heading_level_window.show()
-
-    def open_emphasize_and_punctuate(self):
-        self.emphasize_and_punctuate_window = EmphasizeAndPunctuate()
-        self.emphasize_and_punctuate_window.show()
-
-    def open_create_page_b_headers(self):
-        self.create_page_b_headers_window = CreatePageBHeaders()
-        self.create_page_b_headers_window.show()
-
-    def open_replace_page_b_headers(self):
-        self.replace_page_b_headers_window = ReplacePageBHeaders()
-        self.replace_page_b_headers_window.show()
-
-    def open_check_heading_errors_original(self):
-        self.check_heading_errors_original_window = CheckHeadingErrorsOriginal()
-        self.check_heading_errors_original_window.show()
-
-    def open_check_heading_errors_custom(self):
-        self.check_heading_errors_custom_window = CheckHeadingErrorsCustom()
-        self.check_heading_errors_custom_window.show()
-        
-    def open_Image_To_Html_App(self):
-        self.Image_To_Html_App_window = ImageToHtmlApp()
-        self.Image_To_Html_App_window.show()
-
-    def open_Text_Cleaner_App(self):
-        self.Text_Cleaner_App_window = TextCleanerApp()
-        self.Text_Cleaner_App_window.show()
-
-    def open_replace_colons_and_spaces(self):
-        self.replace_colons_and_spaces_window = ReplaceColonsAndSpaces()
-        self.replace_colons_and_spaces_window.show()
-   
-    def load_icon_from_base64(self, base64_string):
-        pixmap = QPixmap()
-        pixmap.loadFromData(base64.b64decode(base64_string))
-        return QIcon(pixmap)
-
-
     def refresh_after_processing(self):
         """עדכון התצוגה לאחר עיבוד"""
         try:
@@ -3064,6 +4170,12 @@ class MainMenu(QWidget):
             QMessageBox.critical(self, "שגיאה", f"שגיאה בעדכון התוכן: {str(e)}")
 
  #סנכרון חלונות המשנה עם החלון הראשי
+
+    def open_about_dialog(self):
+        """פתיחת חלון 'אודות'"""
+        dialog = AboutDialog(self)
+        dialog.exec_()
+
             
     # סקריפט 1 - יצירת כותרות לאוצריא
     def open_create_headers_otzria(self):
@@ -3072,7 +4184,7 @@ class MainMenu(QWidget):
             return
         self.create_headers_window = CreateHeadersOtZria()
         self.create_headers_window.set_file_path(self.current_file_path)
-        self.create_headers_window.changes_made.connect(self.update_content_from_child)
+        self.create_headers_window.changes_made.connect(self.refresh_after_processing)
         self.create_headers_window.show()
 
     # סקריפט 2 - יצירת כותרות לאותיות בודדות
@@ -3170,9 +4282,17 @@ class MainMenu(QWidget):
         self.Text_Cleaner_App_window.changes_made.connect(self.update_content_from_child)
         self.Text_Cleaner_App_window.show()
 
+   
         
+
+    def load_icon_from_base64(self, base64_string):
+        pixmap = QPixmap()
+        pixmap.loadFromData(base64.b64decode(base64_string))
+        return QIcon(pixmap)
+    
     #עדכונים
     def check_for_updates(self):
+        
         """בדיקת עדכונים חדשים"""
         self.status_label.setText("בודק עדכונים...")
 
@@ -3268,64 +4388,138 @@ class AboutDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle("אודות התוכנה")
         self.setLayoutDirection(Qt.RightToLeft)
+        self.setFixedWidth(600)
+        self.setStyleSheet("""
+            QDialog {
+                background-color: white;
+                border-radius: 15px;
+            }
+        """)
 
         layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
 
+        # כותרת ראשית
         title_label = QLabel("עריכת ספרי דיקטה עבור 'אוצריא'")
-        title_label.setStyleSheet("font-size: 14pt; font-weight: bold;")
+        title_label.setStyleSheet("""
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 24px;
+                font-weight: bold;
+            }
+        """)
         title_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(title_label)
 
+        # מידע על הגרסה והתאריך
+        info_container = QHBoxLayout()
+        
         version_label = QLabel("גירסה: v3.2")
-        version_label.setStyleSheet("font-size: 10pt;")
-        version_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(version_label)
-
+        version_label.setStyleSheet("""
+            QLabel {
+                color: #2b4c7e;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                font-weight: bold;
+            }
+        """)
+        
         date_label = QLabel("תאריך: כט שבט תשפה")
-        date_label.setStyleSheet("font-size: 10pt;")
-        date_label.setAlignment(Qt.AlignCenter)
-        layout.addWidget(date_label)
+        date_label.setStyleSheet(version_label.styleSheet())
+        
+        info_container.addWidget(version_label, alignment=Qt.AlignCenter)
+        info_container.addWidget(date_label, alignment=Qt.AlignCenter)
+        layout.addLayout(info_container)
 
+        # פיתוח
         dev_label = QLabel("נכתב על ידי 'מתנדבי אוצריא', להצלחת לומדי התורה הקדושה")
-        dev_label.setStyleSheet("font-size: 10pt;")
+        dev_label.setStyleSheet("""
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin: 10px 0;
+            }
+        """)
         dev_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(dev_label)
 
-        # קישור ל-GitHub
+        # סגנון משותף לקישורים
+        link_style = """
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                padding: 5px;
+            }
+            QLabel a {
+                color: #2b4c7e;
+                text-decoration: none;
+            }
+            QLabel a:hover {
+                color: #1a365d;
+                text-decoration: underline;
+            }
+        """
+
+        # קישורים להורדה
         github_label = QLabel('ניתן להוריד את הגירסא האחרונה, וכן קובץ הדרכה, בקישור הבא: <a href="https://github.com/YOSEFTT/EditingDictaBooks/releases">GitHub</a>')
-        github_label.setStyleSheet("font-size: 10pt;")
+        github_label.setStyleSheet(link_style)
         github_label.setOpenExternalLinks(True)
         github_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(github_label)
 
-        # קישור ל-מתמחים.טופ
-        mitmachimtop_label = QLabel('או כאן: <a href="https://mitmachim.top/topic/77509/%D7%94%D7%A1%D7%91%D7%A8-%D7%94%D7%95%D7%A1%D7%A4%D7%AA-%D7%95%D7%98%D7%99%D7%A4%D7%95%D7%9C-%D7%91%D7%A1%D7%A4%D7%A8%D7%99%D7%9D-%D7%9C-%D7%90%D7%95%D7%A6%D7%A8%D7%99%D7%90-%D7%9B%D7%A2%D7%AA-%D7%96%D7%94-%D7%A7%D7%9C">מתמחים.טופ</a>')
-        mitmachimtop_label.setStyleSheet("font-size: 10pt;")
+        mitmachimtop_label = QLabel('או כאן: <a href="https://mitmachim.top/topic/77509/הסבר-הוספת-וטיפול-בספרים-ל-אוצריא-כעת-זה-קל">מתמחים.טופ</a>')
+        mitmachimtop_label.setStyleSheet(link_style)
         mitmachimtop_label.setOpenExternalLinks(True)
         mitmachimtop_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(mitmachimtop_label)
 
-        # קישור ל-דרייב
         drive_label = QLabel('או בדרייב: <a href="http://did.li/otzaria-">כאן</a> או <a href="https://drive.google.com/open?id=1KEKudpCJUiK6Y0Eg44PD6cmbRsee1nRO&usp=drive_fs">כאן</a>')
-        drive_label.setStyleSheet("font-size: 10pt;")
+        drive_label.setStyleSheet(link_style)
         drive_label.setOpenExternalLinks(True)
         drive_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(drive_label)
 
-        info_label = QLabel("אפשר לבקש את התוכנה\nוכן להירשם לקבלת עדכון במייל כשיוצא עדכון לתוכנות אלו\nוכן לקבל תמיכה וסיוע בכל הקשור לתוכנה זו ולתוכנת 'אוצריא'\nבמייל הבא:")
-        info_label.setStyleSheet("font-size: 10pt;")
+        # מידע נוסף
+        info_text = "אפשר לבקש את התוכנה\nוכן להירשם לקבלת עדכון במייל כשיוצא עדכון לתוכנות אלו\nוכן לקבל תמיכה וסיוע בכל הקשור לתוכנה זו ולתוכנת 'אוצריא'\nבמייל הבא:"
+        info_label = QLabel(info_text)
+        info_label.setStyleSheet("""
+            QLabel {
+                color: #1a365d;
+                font-family: "Segoe UI", Arial;
+                font-size: 14px;
+                margin: 15px 0 5px 0;
+            }
+        """)
         info_label.setAlignment(Qt.AlignCenter)
-        
+        layout.addWidget(info_label)
+
+        # כתובת מייל
         gmail_label = QLabel('<a href="https://mail.google.com/mail/u/0/?view=cm&fs=1&to=otzaria.1%40gmail.com%E2%80%AC">otzaria.1@gmail.com</a>')
-        gmail_label.setStyleSheet("font-size: 10pt;")
+        gmail_label.setStyleSheet("""
+            QLabel {
+                color: #2b4c7e;
+                font-family: "Segoe UI", Arial;
+                font-size: 16px;
+                font-weight: bold;
+            }
+            QLabel a {
+                color: #2b4c7e;
+                text-decoration: none;
+            }
+            QLabel a:hover {
+                color: #1a365d;
+                text-decoration: underline;
+            }
+        """)
         gmail_label.setOpenExternalLinks(True)
         gmail_label.setAlignment(Qt.AlignCenter)
-        
-        layout.addWidget(info_label)
         layout.addWidget(gmail_label)
 
         self.setLayout(layout)
-
 
         
 class DocumentHistory:
@@ -3368,6 +4562,8 @@ class DocumentHistory:
     def get_current_description(self):
         """קבלת תיאור הפעולה הנוכחית"""
         return self.current_description
+
+ 
     
 # ==========================================
 #  update
