@@ -3,15 +3,15 @@ import sys
 import ctypes
 from PyQt5 import QtGui, QtCore, QtWidgets
 from PyQt5.QtWidgets import (
-    QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QMainWindow, QProgressBar,
+    QApplication, QWidget, QPushButton, QVBoxLayout, QLabel, QMainWindow, QProgressBar, QScrollArea,
     QLayout, QFileDialog, QLineEdit, QMessageBox, QComboBox, QHBoxLayout, QProgressDialog,
     QCheckBox, QTextEdit, QDialog, QFrame, QSplitter, QGridLayout, QSpacerItem, QSizePolicy, QApplication
 )
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette, QTextDocument, QFont, QTextOption
+from PyQt5.QtGui import QIcon, QPixmap, QCursor, QColor, QPalette, QTextDocument, QFont, QTextOption, QTextCursor
 from PyQt5.QtWinExtras import QtWin
 from PyQt5.QtWidgets import QProxyStyle, QMessageBox, QTreeWidget
-from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import pyqtSignal, QThread, pyqtSignal, QTimer, QPropertyAnimation, QEasingCurve
 from pyluach import gematria
 from bs4 import BeautifulSoup
 from functools import partial
@@ -23,13 +23,94 @@ import requests
 import certifi
 import sys
 import shutil
-
+import logging
+import winreg
+from ctypes import wintypes
 from packaging import version
 import base64
 from urllib3.util.ssl_ import create_urllib3_context
 import urllib.request
 import traceback
 import requests.adapters
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    app.setAttribute(Qt.AA_EnableHighDpiScaling, True)
+    app.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
+
+
+
+def install_font(font_path):
+    """
+    מתקין גופן במערכת Windows
+    
+    Args:
+        font_path (str): הנתיב המלא לקובץ הגופן (.ttf או .otf)
+        
+    Returns:
+        bool: True אם ההתקנה הצליחה, False אם נכשלה
+    """
+    try:
+        # בדיקה שהקובץ קיים
+        if not os.path.exists(font_path):
+            logging.error(f"קובץ הגופן לא נמצא: {font_path}")
+            return False
+
+        # קבלת שם הגופן מהקובץ
+        font_name = os.path.basename(font_path)
+        
+        # הנתיב לתיקיית הגופנים של Windows
+        windows_font_dir = os.path.join(os.environ['WINDIR'], 'Fonts')
+        
+        # הנתיב המלא לגופן בתיקיית הגופנים
+        destination = os.path.join(windows_font_dir, font_name)
+        
+        # בדיקה אם הגופן כבר מותקן
+        if os.path.exists(destination):
+            logging.info(f"הגופן {font_name} כבר מותקן במערכת")
+            return True
+
+        # העתקת קובץ הגופן לתיקיית הגופנים
+        shutil.copy2(font_path, destination)
+        
+        # הוספת הגופן לרג'יסטרי
+        fonts_reg_key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts", 0, winreg.KEY_SET_VALUE)
+        
+        # הגדרת שם הרשומה ברג'יסטרי (שם הגופן + סיומת)
+        reg_name = os.path.splitext(font_name)[0] + " (TrueType)"
+        winreg.SetValueEx(fonts_reg_key, reg_name, 0, winreg.REG_SZ, font_name)
+        winreg.CloseKey(fonts_reg_key)
+
+        # עדכון מערכת הגופנים של Windows
+        HWND_BROADCAST = 0xFFFF
+        WM_FONTCHANGE = 0x001D
+        SMTO_NORMAL = 0x0000
+        ctypes.windll.user32.SendMessageTimeoutW(HWND_BROADCAST, WM_FONTCHANGE, 0, 0, SMTO_NORMAL, 1000, None)
+
+        logging.info(f"הגופן {font_name} הותקן בהצלחה")
+        return True
+
+    except Exception as e:
+        logging.error(f"שגיאה בהתקנת הגופן: {str(e)}")
+        return False
+
+def is_admin():
+    try:
+        return ctypes.windll.shell32.IsUserAnAdmin()
+    except:
+        return False
+
+if not is_admin():
+    # הרץ מחדש את התוכנית עם הרשאות מנהל
+    ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, " ".join(sys.argv), None, 1)
+    sys.exit()
+
+font_path = r"taf.ttf"  
+if install_font(font_path):
+    print("הגופן הותקן בהצלחה!")
+else:
+    print("התקנת הגופן נכשלה")
 
 
  #פונקצייה גלובלית לטיפול בשגיאות
@@ -69,34 +150,44 @@ myappid = 'MIT.LEARN_PYQT.dictatootzaria'
 # מחרוזת Base64 של האייקון (החלף את זה עם המחרוזת שתקבל אחרי המרת הקובץ שלך ל־Base64)
 icon_base64 = "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"
 
-#מחלקה לטעינת קבצים
-class FileLoader(QThread):
-    """מחלקה לטעינת קבצים ברקע"""
-    finished = pyqtSignal(dict) 
+class NavigationLoader(QThread):
+    """מחלקה לטעינת וניתוח כותרות ברקע"""
+    finished = pyqtSignal(dict)
 
-    def __init__(self, file_path):
+    def __init__(self, document):
         super().__init__()
-        self.file_path = file_path
+        self.document = document
 
     def run(self):
         result = {
             'success': False,
-            'content': None,
+            'headers': [],
             'error': None
         }
         
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
-                content = file.read()
-                result['success'] = True
-                result['content'] = content
-        except UnicodeDecodeError:
-            result['error'] = "קידוד הקובץ אינו נתמך. יש להשתמש בקידוד UTF-8."
+            print("התחלת ניתוח כותרות...")  # דיבאג
+            block = self.document.begin()
+            while block.isValid():
+                block_format = block.blockFormat()
+                if block_format.headingLevel() > 0:
+                    header_info = {
+                        'level': block_format.headingLevel(),
+                        'text': block.text(),
+                        'position': block.position()
+                    }
+                    result['headers'].append(header_info)
+                    print(f"נמצאה כותרת: {header_info['text']}")  # דיבאג
+                block = block.next()
+            
+            result['success'] = True
+            print(f"נמצאו {len(result['headers'])} כותרות")  # דיבאג
         except Exception as e:
-            result['error'] = f"שגיאה בפתיחת הקובץ: {str(e)}"
+            result['error'] = f"שגיאה בניתוח הכותרות: {str(e)}"
+            print(f"שגיאה: {result['error']}")  # דיבאג
         finally:
             self.finished.emit(result)
-
+            print("סיום ניתוח כותרות")  # דיבאג
 
 # ==========================================
 # Script 1: יצירת כותרות לאוצריא
@@ -3300,7 +3391,7 @@ class TextCleanerApp(QWidget):
 # ==========================================
 # Main Menu: תפריט ראשי ופונקציות מרכזיות
 # ==========================================
-class MainMenu(QWidget):
+class MainMenu(QMainWindow):
     def __init__(self):
         super().__init__()
         self.document_history = []
@@ -3314,13 +3405,44 @@ class MainMenu(QWidget):
         self.setWindowTitle("עריכת ספרי דיקטה עבור אוצריא")
         self.setLayoutDirection(Qt.RightToLeft)
         self.setWindowIcon(self.load_icon_from_base64(icon_base64))
-        self.setGeometry(100, 100, 1000, 600)
-        self.init_ui()
+        self.setGeometry(200, 100, 1400, 800)
+        
+        self.create_side_menu()
+
+        # יצירת תצוגת הטקסט
+        self.text_display = QtWidgets.QTextBrowser()
+        self.text_display.setReadOnly(True)
+        self.text_display.setLayoutDirection(Qt.RightToLeft)
+        self.text_display.document().setDefaultTextOption(QTextOption(Qt.AlignRight))
+        self.text_display.textChanged.connect(self.on_text_changed)
+    
+        base_font = QFont('"Frank Ruehl CLM","Segoe UI"', 18)
+        self.text_display.setFont(base_font)
+    
+        self.text_display.setStyleSheet("""
+            QTextBrowser {
+                background-color: transparent;
+                border: 2px solid black;
+                border-radius: 15px;
+                padding: 20px 40px;
+            }
+         """)
+
+        # יצירת תפריט צד
+        #self.side_menu = QWidget()
+        #self.side_menu.setFixedWidth(0)
+        #self.side_menu.hide()
+
+         # מערך לשמירת כפתורי העריכה
+        self.editing_buttons = []
+    
+         # אתחול ממשק המשתמש
+        self.init_ui()       
 
         if sys.platform == 'win32':
             QtWin.setCurrentProcessExplicitAppUserModelID(myappid)
 
-               # בדיקת עדכונים אוטומטית בהפעלה
+        # בדיקת עדכונים אוטומטית בהפעלה
         QTimer.singleShot(3000, self.check_for_updates) 
 
     def check_for_updates(self, silent=True):
@@ -3359,211 +3481,26 @@ class MainMenu(QWidget):
         self.status_label.setText("שגיאה בבדיקת עדכונים")     
 
     def init_ui(self):
-        main_layout = QHBoxLayout()
+        """אתחול ממשק המשתמש"""
+        # יצירת מיכל ראשי
+        main_container = QWidget()
+        main_layout = QHBoxLayout(main_container)
         main_layout.setSpacing(0)
         main_layout.setContentsMargins(0, 0, 0, 0)
-
-        #עדכונים
-        update_button = QPushButton("⭳")
-        update_button.setStyleSheet("""
-            font-weight: bold; 
-            font-size: 14pt;
-        """)
-        update_button.setCursor(QCursor(Qt.PointingHandCursor))
-
-        update_button.clicked.connect(lambda: self.check_for_updates(silent=False))
-        update_button.setFixedSize(40, 40)
-        update_button.setToolTip("עדכונים")
 
         # מיכל ימני לכפתורים
         right_container = QWidget()
         right_container.setFixedWidth(300)
         right_layout = QVBoxLayout(right_container)
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
+        # יצירת כפתורי הגריד בתוך המיכל הימני
         buttons_grid_widget = QWidget()
         buttons_grid_widget.setSizePolicy(QSizePolicy.Minimum, QSizePolicy.Expanding)
         grid_layout = QGridLayout(buttons_grid_widget)
         grid_layout.setSpacing(5)
 
-        # פאנל טקסט
-        text_container = QWidget()
-        text_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        text_layout = QVBoxLayout(text_container)
-        text_layout.setContentsMargins(15, 15, 0, 20)
-
-        # יצירת כפתורי פעולה
-        action_buttons_layout = QHBoxLayout()
-        
-        # כפתור ביטול
-        self.undo_button = QPushButton("⟲")
-        self.undo_button.setStyleSheet("""
-            font-weight: bold; 
-            font-size: 14pt;
-            padding: 5px;
-        """)
-        self.undo_button.setCursor(QCursor(Qt.PointingHandCursor))
-        self.undo_button.clicked.connect(self.undo_action)
-        self.undo_button.setFixedSize(40, 40)
-        self.undo_button.setToolTip("בטל")
-        self.undo_button.setEnabled(False)
-        
-        # כפתור חזרה
-        self.redo_button = QPushButton("⟳")
-        self.redo_button.setStyleSheet("""
-            font-weight: bold; 
-            font-size: 14pt;
-            padding: 5px;
-        """)
-        self.redo_button.setCursor(QCursor(Qt.PointingHandCursor))
-        self.redo_button.clicked.connect(self.redo_action)
-        self.redo_button.setFixedSize(40, 40)
-        self.redo_button.setToolTip("חזור")
-        self.redo_button.setEnabled(False)
-        
-        # כפתור שמירה
-        self.save_button = QPushButton("🖫")
-        self.save_button.setStyleSheet("""
-            font-weight: bold; 
-            font-size: 14pt;
-            padding: 5px;
-        """)
-        self.save_button.setCursor(QCursor(Qt.PointingHandCursor))
-        self.save_button.clicked.connect(self.save_file)
-        self.save_button.setFixedSize(40, 40)
-        self.save_button.setToolTip("שמור")
-        self.save_button.setEnabled(False)
-
-        # תווית סטטוס
-        self.status_label = QLabel("לא בוצעו עדיין פעולות")
-        self.status_label.setStyleSheet("""
-            color: #666666;
-            font-size: 14px;
-            padding: 5px 15px;
-            background-color: transparent;
-            border-radius: 10px;
-        """)
-        self.status_label.setAlignment(Qt.AlignCenter)
-
-        # כפתור הוספת קובץ
-        add_file_button = QPushButton("הוסף קובץ")
-        add_file_button.setFixedSize(100, 40)
-        add_file_button.setCursor(QCursor(Qt.PointingHandCursor))
-        add_file_button.setStyleSheet("""
-            QPushButton {
-                border-radius: 20px;
-                padding: 5px;
-                background-color: #eaeaea;
-                color: black;
-                font-weight: bold;
-                font-size: 8.5pt;
-            }
-
-            QPushButton:hover {
-                background-color: #b7b5b5;
-            }
-        """)
-        add_file_button.clicked.connect(self.select_file)
-
-        #הוספת כפתורי פעולה
-        action_buttons_layout.addWidget(add_file_button)
-        action_buttons_layout.addStretch(1)
-        action_buttons_layout.addWidget(self.status_label)
-        action_buttons_layout.addStretch(1)
-        action_buttons_layout.addWidget(self.undo_button)
-        action_buttons_layout.addWidget(self.redo_button)
-        action_buttons_layout.addWidget(self.save_button)
-
-        # תצוגת טקסט עם כיווניות מימין לשמאל
-        self.text_display = QtWidgets.QTextBrowser()
-        self.text_display.setReadOnly(True)
-        
-        # הגדרת כיווניות מימין לשמאל
-        self.text_display.setLayoutDirection(Qt.RightToLeft)
-        self.text_display.document().setDefaultTextOption(QTextOption(Qt.AlignRight))
-        self.text_display.textChanged.connect(self.on_text_changed)
-        
-        # הגדרת הגופן הבסיסי
-        base_font = QFont("Frank Ruehl CLM", 18)
-        self.text_display.setFont(base_font)
-        
-        # עיצוב בסיסי של התצוגה
-        self.text_display.setStyleSheet("""
-            QTextBrowser {
-                background-color: transparent;
-                border: 2px solid black;
-                border-radius: 15px;
-                padding: 20px;
-                text-align: right;
-            }
-        """)
-        # עיצוב המסגרת
-        self.text_display.setStyleSheet("""
-            QTextBrowser {
-                background-color: transparent;
-                border: 2px solid black;
-                border-radius: 15px;
-                padding: 20px 40px;
-            }
-        """)
-
-        # יצירת כפתורי עריכה
-        text_bottom_buttons = QHBoxLayout()
-        text_bottom_buttons.setSpacing(10)
-        text_bottom_buttons.addSpacing(10)
-
-        # הגדרת כפתורי עריכה
-        buttons_data = [
-            ("קטן", self.button1_function),
-            ("גדול", self.button2_function),
-            ("נטוי", self.button3_function),
-            ("דגש", self.button4_function),
-            ("H6", self.button5_function),
-            ("H5", self.button6_function),
-            ("H4", self.button7_function),
-            ("H3", self.button8_function),
-            ("H2", self.button9_function),
-            ("H1", self.button10_function)
-        ]
-
-        button_style = """
-            QPushButton {
-                border-radius: 15px;
-                padding: 6px 12px;
-                background-color: #E8F0FE; 
-                color: #1a365d;
-                font-weight: bold;
-                font-family: "Segoe UI", Arial;
-                font-size: 7.5pt;
-                min-width: 20px;
-                min-height: 12px;
-                width: 12px;
-                height: 20px;
-                border: 1px solid #c2d3f0;
-            }
-            QPushButton:hover {
-                background-color: #d3e3fc; 
-            }
-            QPushButton:pressed {
-                background-color: #bbd1f8;
-                padding: 7px 11px 5px 13px;
-            }
-        """
-
-        # יצירת כפתורי עריכה
-        self.editing_buttons = []
-        for button_text, func in reversed(buttons_data):
-            button = QPushButton(button_text)
-            button.setFixedSize(40, 40)
-            button.setStyleSheet(button_style)
-            button.setCursor(QCursor(Qt.PointingHandCursor))
-            button.clicked.connect(func)
-            button.hide()
-            self.editing_buttons.insert(0, button)
-            text_bottom_buttons.addWidget(button)
-
-        text_bottom_buttons.addStretch(1)
-
-        # כפתורי תפריט
+        # יצירת כפתורי תפריט בגריד
         button_info = [
             ("1\n\nיצירת כותרות לאוצריא", self.open_create_headers_otzria),
             ("2\n\nיצירת כותרות לאותיות בודדות", self.open_create_single_letter_headers),
@@ -3574,9 +3511,10 @@ class MainMenu(QWidget):
             ("7\n\nבדיקת שגיאות", self.open_check_heading_errors_original),
             ("8\n בדיקת שגיאות לספרים על השס", self.open_check_heading_errors_custom),
             ("9\n\nהמרת תמונה לטקסט", self.open_Image_To_Html_App),
-            ("10\n\nתיקון שגיאות נפוצות", self.open_Text_Cleaner_App),
+            ("10\n\nתיקון שגיאות נפוצות", self.open_Text_Cleaner_App)
         ]
 
+        # הוספת הכפתורים לגריד
         for i, (text, func) in enumerate(button_info):
             button = QPushButton(text)
             button.setFixedSize(250, 70)
@@ -3598,8 +3536,239 @@ class MainMenu(QWidget):
             """)
             grid_layout.addWidget(button, i, 0)
 
-        # כפתורים תחתונים
+        # מיכל לתצוגת טקסט ותפריט
+        text_container = QWidget()
+        text_container.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        text_layout = QVBoxLayout(text_container)
+        text_layout.setContentsMargins(15, 15, 0, 20)
+
+        # יצירת הכפתורים העליונים
+        self.menu_button = QPushButton("☰")
+        self.menu_button.setStyleSheet("""
+            QPushButton {
+                font-size: 24px;
+                padding: 5px;
+                background-color: transparent;
+                border: none;
+            }
+            QPushButton:hover {
+                background-color: #eaeaea;
+            }
+        """)
+        self.menu_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.menu_button.clicked.connect(self.toggle_side_menu)
+        self.menu_button.setFixedSize(40, 40)
+        self.menu_button.setToolTip("תפריט")
+
+        # יצירת כפתורי פעולה
+        self.undo_button = QPushButton("⟲")
+        self.undo_button.setStyleSheet("font-weight: bold; font-size: 14pt; padding: 5px;")
+        self.undo_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.undo_button.clicked.connect(self.undo_action)
+        self.undo_button.setFixedSize(40, 40)
+        self.undo_button.setToolTip("בטל")
+        self.undo_button.setEnabled(False)
+
+        self.redo_button = QPushButton("⟳")
+        self.redo_button.setStyleSheet("font-weight: bold; font-size: 14pt; padding: 5px;")
+        self.redo_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.redo_button.clicked.connect(self.redo_action)
+        self.redo_button.setFixedSize(40, 40)
+        self.redo_button.setToolTip("חזור")
+        self.redo_button.setEnabled(False)
+
+        self.save_button = QPushButton("🖫")
+        self.save_button.setStyleSheet("font-weight: bold; font-size: 14pt; padding: 5px;")
+        self.save_button.setCursor(QCursor(Qt.PointingHandCursor))
+        self.save_button.clicked.connect(self.save_file)
+        self.save_button.setFixedSize(40, 40)
+        self.save_button.setToolTip("שמור")
+        self.save_button.setEnabled(False)
+
+        # כפתור הוספת קובץ
+        add_file_button = QPushButton("הוסף קובץ")
+        add_file_button.setFixedSize(100, 40)
+        add_file_button.setCursor(QCursor(Qt.PointingHandCursor))
+        add_file_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 20px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-size: 8.5pt;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+        """)
+        add_file_button.clicked.connect(self.select_file)
+
+        # כפתור עריכה בפנקס רשימות
+        edit_in_notepad_button = QPushButton("ערוך בפנקס רשימות")
+        edit_in_notepad_button.setFixedSize(150, 40)
+        edit_in_notepad_button.setCursor(QCursor(Qt.PointingHandCursor))
+        edit_in_notepad_button.setStyleSheet("""
+            QPushButton {
+                border-radius: 20px;
+                padding: 5px;
+                background-color: #eaeaea;
+                color: black;
+                font-weight: bold;
+                font-size: 8.5pt;
+            }
+            QPushButton:hover {
+                background-color: #b7b5b5;
+            }
+        """)
+        edit_in_notepad_button.clicked.connect(self.open_in_notepad)
+
+        # תווית סטטוס
+        self.status_label = QLabel("לא בוצעו עדיין פעולות")
+        self.status_label.setStyleSheet("""
+            color: #666666;
+            font-size: 14px;
+            padding: 5px 15px;
+            background-color: transparent;
+            border-radius: 10px;
+        """)
+        self.status_label.setAlignment(Qt.AlignCenter)
+
+        # יצירת מיכל לכפתורי פעולה
+        action_buttons_container = QWidget()
+        action_buttons_layout = QHBoxLayout(action_buttons_container)
+        action_buttons_layout.setContentsMargins(10, 10, 10, 10)
+
+        # הוספת הכפתורים ללייאאוט
+        action_buttons_layout.addWidget(self.menu_button)
+        action_buttons_layout.addWidget(add_file_button)
+        action_buttons_layout.addWidget(edit_in_notepad_button)
+        action_buttons_layout.addStretch(1)
+        action_buttons_layout.addWidget(self.status_label)
+        action_buttons_layout.addStretch(1)
+        action_buttons_layout.addWidget(self.undo_button)
+        action_buttons_layout.addWidget(self.redo_button)
+        action_buttons_layout.addWidget(self.save_button)
+
+        # מיכל לתוכן הראשי - תפריט וטקסט
+        main_content = QWidget()
+        main_content_layout = QVBoxLayout(main_content)
+        main_content_layout.setContentsMargins(0, 0, 0, 0)
+        main_content_layout.setSpacing(0)
+
+        # יצירת כפתורי עריכה תחתונים
+        editing_buttons_container = QWidget()
+        text_bottom_buttons = QHBoxLayout(editing_buttons_container)
+        text_bottom_buttons.setSpacing(10)
+        text_bottom_buttons.setContentsMargins(15, 10, 15, 10)
+
+        # הגדרת כפתורי עריכה
+        buttons_data = [
+            ("קטן", self.button1_function),
+            ("גדול", self.button2_function),
+            ("נטוי", self.button3_function),
+            ("דגש", self.button4_function),
+            ("H6", self.button5_function),
+            ("H5", self.button6_function),
+            ("H4", self.button7_function),
+            ("H3", self.button8_function),
+            ("H2", self.button9_function),
+            ("H1", self.button10_function)
+        ]
+
+        # סגנון כפתורי עריכה
+        button_style = """
+            QPushButton {
+                border-radius: 15px;
+                padding: 6px 12px;
+                background-color: #E8F0FE;
+                color: #1a365d;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 7.5pt;
+                min-width: 20px;
+                min-height: 12px;
+                width: 12px;
+                height: 20px;
+                border: 1px solid #c2d3f0;
+            }
+            QPushButton:hover {
+                background-color: #d3e3fc;
+            }
+            QPushButton:pressed {
+                background-color: #bbd1f8;
+                padding: 7px 11px 5px 13px;
+            }
+        """
+
+        # כפתור חיפוש
+        search_button_style = """
+            QPushButton {
+                border-radius: 15px;
+                padding: 6px 15px;
+                background-color: #e0e0e0;
+                color: #333333;
+                font-weight: bold;
+                font-family: "Segoe UI", Arial;
+                font-size: 7.5pt;
+                min-width: 60px;
+                min-height: 12px;
+                width: 60px;
+                height: 20px;
+                border: 1px solid #cccccc;
+            }
+            QPushButton:hover {
+                background-color: #d0d0d0;
+            }
+            QPushButton:pressed {
+                background-color: #c0c0c0;
+                padding: 7px 14px 5px 16px;
+            }
+        """
+
+        # יצירת כפתור החיפוש
+        search_button = QPushButton("חיפוש")
+        search_button.setFixedSize(100, 40)
+        search_button.setStyleSheet(search_button_style)
+        search_button.setCursor(QCursor(Qt.PointingHandCursor))
+        search_button.clicked.connect(self.open_find_replace)
+        search_button.hide()
+        
+        self.editing_buttons = [search_button]
+        
+        # הוספת כפתור החיפוש עם מרווח
+        text_bottom_buttons.addWidget(search_button)
+        text_bottom_buttons.addSpacing(20)
+
+        # יצירת כפתורי העריכה
+        for button_text, func in reversed(buttons_data):
+            button = QPushButton(button_text)
+            button.setFixedSize(40, 40)
+            button.setStyleSheet(button_style)
+            button.setCursor(QCursor(Qt.PointingHandCursor))
+            button.clicked.connect(func)
+            button.hide()
+            self.editing_buttons.insert(0, button)
+            text_bottom_buttons.addWidget(button)
+
+        text_bottom_buttons.addStretch(1)
+
+        # מיכל לתצוגת טקסט
+        text_display_container = QWidget()
+        text_display_layout = QHBoxLayout(text_display_container)
+        text_display_layout.setContentsMargins(20, 5, 5, 20)
+        text_display_layout.setSpacing(0)
+        text_display_layout.addWidget(self.side_menu)
+        text_display_layout.addWidget(self.text_display)
+
+        # סידור סופי של הרכיבים
+        main_content_layout.addWidget(action_buttons_container)
+        main_content_layout.addWidget(editing_buttons_container)
+        main_content_layout.addWidget(text_display_container)
+
+        # סידור כפתורי התפריט הימני
         bottom_buttons_layout = QHBoxLayout()
+        bottom_buttons_layout.setContentsMargins(10, 20, 10, 20)
         
         about_button = QPushButton("i")
         about_button.setStyleSheet("font-weight: bold; font-size: 12pt;")
@@ -3608,49 +3777,212 @@ class MainMenu(QWidget):
         about_button.setFixedSize(40, 40)
         
         update_button = QPushButton("⭳")
-        update_button.setStyleSheet("""
-            font-weight: bold; 
-            font-size: 14pt;
-        """)
+        update_button.setStyleSheet("font-weight: bold; font-size: 14pt;")
         update_button.setCursor(QCursor(Qt.PointingHandCursor))
         update_button.clicked.connect(self.check_for_updates)
         update_button.setFixedSize(40, 40)
         update_button.setToolTip("עדכונים")
 
         self.edit_button = QPushButton("✍")
-        self.edit_button.setStyleSheet("""
-            font-weight: bold; 
-            font-size: 14pt;
-        """)
+        self.edit_button.setStyleSheet("font-weight: bold; font-size: 14pt;")
         self.edit_button.setCursor(QCursor(Qt.PointingHandCursor))
         self.edit_button.setFixedSize(40, 40)
         self.edit_button.setToolTip("עריכה")
         self.edit_button.clicked.connect(self.edit_text)
 
+        bottom_buttons_layout.addSpacing(10)
         bottom_buttons_layout.addWidget(about_button)
         bottom_buttons_layout.addWidget(update_button)
         bottom_buttons_layout.addSpacing(120)
         bottom_buttons_layout.addWidget(self.edit_button)
         bottom_buttons_layout.addStretch()
 
-        #סידור סופי
-        text_layout.insertLayout(0, action_buttons_layout)
-        text_layout.addLayout(text_bottom_buttons)
-        text_layout.addWidget(self.text_display)
-       
-
+        # סידור כפתורי התפריט הימני
         right_layout.addWidget(buttons_grid_widget)
         right_layout.addLayout(bottom_buttons_layout)
 
+        # הוספה למיכל הראשי
         main_layout.addWidget(right_container)
-        main_layout.addWidget(text_container)
-        main_layout.setStretchFactor(right_container, 1)
-        main_layout.setStretchFactor(text_container, 2)
+        main_layout.addWidget(main_content)
 
-        self.setLayout(main_layout)
+        self.setCentralWidget(main_container)
         
-       
 
+
+
+
+    def create_side_menu(self):
+        """יצירת תפריט הצד לניווט בכותרות"""
+        self.side_menu = QWidget()
+        self.side_menu.setFixedWidth(0)
+        
+        # יצירת לייאאוט ראשי
+        layout = QVBoxLayout()
+        layout.setContentsMargins(20, 20, 20, 20)
+        
+        # יצירת תווית כותרת
+        title_label = QLabel("ניווט במסמך")
+        title_label.setLayoutDirection(Qt.RightToLeft)
+        
+        # יצירת QTextOption עבור יישור טקסט
+        text_option = QTextOption()
+        text_option.setAlignment(Qt.AlignRight)
+        
+        # הגדרת אפשרויות הטקסט לתווית
+        document = QTextDocument()
+        document.setDefaultTextOption(text_option)
+        title_label.setStyleSheet("""
+            QLabel {
+                font-family: "Segoe UI", Arial;
+                font-size: 16px;
+                font-weight: bold;
+                color: #333333;
+                padding: 5px 20px 5px 0px;  /* top, right, bottom, left */
+                background-color: transparent;
+            }
+        """)
+        
+        layout.addWidget(title_label)
+        # המשך הקוד הקיים...
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.NoFrame)
+        scroll_area.setStyleSheet("""
+            QScrollArea {
+                background: transparent;
+                border: none;
+            }
+            QScrollBar:vertical {
+                border: none;
+                background: transparent;
+                width: 8px;
+                margin: 0px;
+            }
+            QScrollBar::handle:vertical {
+                background: #c1c1c1;
+                min-height: 20px;
+                border-radius: 4px;
+            }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                border: none;
+                background: none;
+                height: 0px;
+            }
+        """)
+        
+        self.headers_widget = QWidget()
+        self.headers_widget.setStyleSheet("""
+            QWidget {
+                background: transparent;
+                border: none;
+            }
+        """)
+        self.headers_layout = QVBoxLayout(self.headers_widget)
+        self.headers_layout.setContentsMargins(0, 0, 0, 0)
+        self.headers_layout.setSpacing(4)
+        
+        scroll_area.setWidget(self.headers_widget)
+        layout.addWidget(scroll_area)
+        
+        # עיצוב כללי לתפריט
+        self.side_menu.setStyleSheet("""
+            QWidget#side_menu {
+                background-color: transparent;
+                border: 2px solid black;
+                border-radius: 15px;
+            }
+            QPushButton {
+                text-align: right;
+                padding: 8px 15px;
+                background-color: transparent;
+                border: none;
+                font-family: "Segoe UI", Arial;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background-color: rgba(232, 240, 254, 0.7);
+            }
+        """)
+        self.side_menu.setObjectName("side_menu")
+        
+        self.side_menu.setLayout(layout)
+        self.side_menu.hide()
+
+    def update_navigation_menu(self):
+        """עדכון תפריט הניווט עם הכותרות מהטקסט הנוכחי"""
+        print("מתחיל עדכון תפריט ניווט")  # דיבאג
+        
+        # ניקוי כפתורים קיימים
+        for i in reversed(range(self.headers_layout.count())):
+            widget = self.headers_layout.itemAt(i).widget()
+            if widget:
+                widget.deleteLater()
+
+        # בדיקה אם יש תהליך קודם פעיל
+        if hasattr(self, 'navigation_loader') and self.navigation_loader is not None and self.navigation_loader.isRunning():
+            print("מפסיק תהליך קודם")  # דיבאג
+            self.navigation_loader.terminate()
+            self.navigation_loader.wait()
+
+        # יצירת תהליך חדש לטעינת הכותרות
+        self.navigation_loader = NavigationLoader(self.text_display.document())
+        self.navigation_loader.finished.connect(self.on_navigation_loaded)
+        self.navigation_loader.start()
+        print("תהליך ניתוח כותרות התחיל")  # דיבאג
+
+    def on_navigation_loaded(self, result):
+        """מטפל בתוצאות טעינת הכותרות"""
+        print(f"התקבלו תוצאות ניתוח כותרות: {result['success']}")  # דיבאג
+        
+        if not result['success']:
+            print(f"שגיאה בטעינת הכותרות: {result['error']}")
+            return
+
+        print(f"מתחיל ליצור {len(result['headers'])} כפתורים")  # דיבאג
+
+        # יצירת הכפתורים עבור כל כותרת
+        for header in result['headers']:
+            button = QPushButton(header['text'])
+            button.setStyleSheet(f"""
+                QPushButton {{
+                    font-size: {18 - header['level']}px;
+                    font-weight: {700 if header['level'] <= 2 else 400};
+                    color: #1a365d;
+                    padding-right: {(header['level']-1) * 20}px;
+                    text-align: right;
+                }}
+            """)
+            button.setCursor(Qt.PointingHandCursor)
+            
+            position = header['position']
+            button.clicked.connect(lambda checked, pos=position: self.scroll_to_header(pos))
+            
+            self.headers_layout.addWidget(button)
+            print(f"נוסף כפתור: {header['text']}")  # דיבאג
+        
+        # הוספת מרווח בסוף
+        self.headers_layout.addStretch()
+        print("סיום עדכון תפריט ניווט")  # דיבאג
+
+    def scroll_to_header(self, position):
+        """גלילה למיקום המדויק של הכותרת"""
+        cursor = self.text_display.textCursor()
+        cursor.setPosition(position)
+        self.text_display.setTextCursor(cursor)
+        self.text_display.ensureCursorVisible()
+
+    def toggle_side_menu(self):
+        """הצגה/הסתרה של תפריט הצד"""
+        try:
+            if self.side_menu.isHidden():
+                self.side_menu.setFixedWidth(300)
+                self.side_menu.show()
+            else:
+                self.side_menu.hide()
+                self.side_menu.setFixedWidth(0)
+        except Exception as e:
+            print(f"Error in toggle_side_menu: {e}")
+        
     def button1_function(self):
         """הקטנת הטקסט המסומן"""
         cursor = self.text_display.textCursor()
@@ -3739,7 +4071,97 @@ class MainMenu(QWidget):
             selected_text = cursor.selectedText()
             cursor.removeSelectedText()
             cursor.insertHtml(f'<h1>{selected_text}</h1>')
-            self._safe_update_history(self.text_display.toHtml(), "H1")   
+            self._safe_update_history(self.text_display.toHtml(), "H1")
+
+
+    def open_find_replace(self):
+        """פתיחת חלונית חיפוש והחלפה"""
+        if not self.text_display.isReadOnly():
+            dialog = QDialog(self)
+            dialog.setWindowTitle("חיפוש והחלפה")
+            dialog.setFixedWidth(400)
+            dialog.setLayoutDirection(Qt.RightToLeft)
+            
+            layout = QVBoxLayout()
+            
+            # תיבת חיפוש
+            search_label = QLabel("חפש:")
+            search_text = QLineEdit()
+            layout.addWidget(search_label)
+            layout.addWidget(search_text)
+            
+            # תיבת החלפה
+            replace_label = QLabel("החלף ב:")
+            replace_text = QLineEdit()
+            layout.addWidget(replace_label)
+            layout.addWidget(replace_text)
+            
+            # כפתורים
+            button_layout = QHBoxLayout()
+            
+            def find_text():
+                text = search_text.text()
+                if text:
+                    found = self.text_display.find(text)
+                    if not found:
+                        cursor = self.text_display.textCursor()
+                        cursor.movePosition(QTextCursor.Start)
+                        self.text_display.setTextCursor(cursor)
+                        found = self.text_display.find(text)
+                        if not found:
+                            QMessageBox.information(dialog, "חיפוש", "הטקסט לא נמצא")
+            
+            def replace_current():
+                cursor = self.text_display.textCursor()
+                if cursor.hasSelection():
+                    cursor.insertText(replace_text.text())
+                    self._safe_update_history(self.text_display.toHtml(), "החלפת טקסט")
+                find_text()
+            
+            def replace_all():
+                text = search_text.text()
+                new_text = replace_text.text()
+                if text:
+                    cursor = self.text_display.textCursor()
+                    cursor.beginEditBlock()
+                    
+                    # שמירת המיקום הנוכחי
+                    original_position = cursor.position()
+                    cursor.movePosition(QTextCursor.Start)
+                    self.text_display.setTextCursor(cursor)
+                    
+                    count = 0
+                    while self.text_display.find(text):
+                        cursor = self.text_display.textCursor()
+                        cursor.insertText(new_text)
+                        count += 1
+                    
+                    cursor.endEditBlock()
+                    
+                    if count > 0:
+                        self._safe_update_history(self.text_display.toHtml(), f"החלפת {count} מופעים")
+                        QMessageBox.information(dialog, "החלפה", f"הוחלפו {count} מופעים")
+                    else:
+                        QMessageBox.information(dialog, "החלפה", "לא נמצאו מופעים להחלפה")
+            
+            find_btn = QPushButton("חפש")
+            find_btn.clicked.connect(find_text)
+            
+            replace_btn = QPushButton("החלף")
+            replace_btn.clicked.connect(replace_current)
+            
+            replace_all_btn = QPushButton("החלף הכל")
+            replace_all_btn.clicked.connect(replace_all)
+            
+            button_layout.addWidget(find_btn)
+            button_layout.addWidget(replace_btn)
+            button_layout.addWidget(replace_all_btn)
+            
+            layout.addLayout(button_layout)
+            dialog.setLayout(layout)
+            
+            dialog.show()
+            
         
     def load_file(self, file_path):
         try:
@@ -3930,7 +4352,8 @@ class MainMenu(QWidget):
                     r'<head[^>]*>.*?</head>',
                     r'<!DOCTYPE[^>]*>',
                     r'<html[^>]*>',
-                    r'</html>'
+                    r'</html>',
+                    r'<span>'
                 ]
                 
                 for tag in qt_tags_to_remove:
@@ -3971,7 +4394,10 @@ class MainMenu(QWidget):
                 
             except Exception as e:
                 print(f"שגיאה בעדכון הטקסט: {str(e)}")
-
+                
+                self.update_navigation_menu()
+                QTimer.singleShot(100, self.update_navigation_menu)
+                
     def process_text(self, processor_widget):
         if not self.current_file_path:
             QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
@@ -4117,6 +4543,20 @@ class MainMenu(QWidget):
         if file_path:
             self.current_file_path = file_path
             self.load_file(file_path)
+            self.update_navigation_menu() 
+            
+    def open_in_notepad(self):
+        """פתיחת הקובץ הנוכחי בפנקס רשימות"""
+        if not self.current_file_path:
+            QMessageBox.warning(self, "שגיאה", "נא לבחור קובץ תחילה")
+            return
+        
+        try:
+            # פתיחת הקובץ בפנקס רשימות
+            subprocess.Popen(['notepad.exe', self.current_file_path])
+        except Exception as e:
+            QMessageBox.critical(self, "שגיאה", f"שגיאה בפתיחת פנקס רשימות: {str(e)}")
+            
 
     def save_action(self):
         if not self.current_file_path:
