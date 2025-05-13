@@ -3,21 +3,21 @@ name: Download YouTube Video
 on:
   workflow_dispatch:
 
-jobs:
-  download:
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-
-    - name: Install yt-dlp
-      run: sudo apt-get update && sudo apt-get install -y yt-dlp
-
-    - name: Download YouTube Video
-      run: yt-dlp -o "video.mp4" "https://github.com/QDARTYQO/ww/actions/runs/15005139926/workflow#:~:text=https%3A//www.youtube.com/watch%3Fv%3DVIDEO_ID"
+  jobs:
+    download:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
   
-  - name: Upload artifact
-    uses: actions/upload-artifact@v3
-    with:
-      name: my-artifact
-      path: path/to/artifact
+      - name: Install yt-dlp
+        run: sudo apt-get update && sudo apt-get install -y yt-dlp
+  
+      - name: Download YouTube Video
+        run: yt-dlp -o "video.mp4" "https://github.com/QDARTYQO/ww/actions/runs/15005139926/workflow#:~:text=https%3A//www.youtube.com/watch%3Fv%3DVIDEO_ID"
+    
+    - name: Upload artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: my-artifact
+        path: path/to/artifact
