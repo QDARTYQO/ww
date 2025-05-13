@@ -1,0 +1,23 @@
+name: Download YouTube Video
+
+on:
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Install yt-dlp
+      run: sudo apt-get update && sudo apt-get install -y yt-dlp
+
+    - name: Download YouTube Video
+      run: yt-dlp -o "video.mp4" "https://www.youtube.com/watch?v=VIDEO_ID"
+
+    - name: Upload to GitHub
+      uses: actions/upload-artifact@v3
+      with:
+        name: youtube-video
+        path: video.mp4
