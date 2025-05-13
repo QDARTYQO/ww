@@ -16,8 +16,8 @@ jobs:
     - name: Download YouTube Video
       run: yt-dlp -o "video.mp4" "https://www.youtube.com/watch?v=VIDEO_ID"
 
-    - name: Upload to GitHub
-      uses: actions/upload-artifact@v3
-      with:
-        name: youtube-video
-        path: video.mp4
+- name: Upload artifact
+  uses: actions/upload-artifact@v3
+  with:
+    name: my-artifact
+    path: path/to/artifact
