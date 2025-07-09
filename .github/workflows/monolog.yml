@@ -1,13 +1,13 @@
-name: Monologue Generator
+name: Generate Suno Song
 
 on:
   workflow_dispatch:
 
 jobs:
-  generate-monologue:
+  generate-song:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -18,17 +18,8 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Run monologue script
-        run: python monolog.py
-
-      - name: Upload monologue audio
-        uses: actions/upload-artifact@v4
-        with:
-          name: monologue-audio
-          path: podcast.wav
-
-      - name: Upload monologue text
-        uses: actions/upload-artifact@v4
-        with:
-          name: monologue-text
-          path: monologue.txt
+      - name: Run Suno song generator
+        env:
+          SUNO_API_KEY: ${{ secrets.SUNO_API_KEY }}
+        run: |
+          python generate_song.py
