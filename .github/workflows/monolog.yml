@@ -19,7 +19,5 @@ jobs:
         run: pip install requests
 
       - name: Run Suno song generator
-        env:
-          SUNO_API_KEY: ${{ secrets.SUNO_API_KEY }}
         run: |
           python generate_song.py
