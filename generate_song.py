@@ -1,6 +1,6 @@
 import requests
 
-API_KEY = "הכנס_כאן_את_המפתח_שלך"
+API_KEY = "cbda1568442d9391191970c30a84142a"
 url = "https://api.sunoapi.org/v1/songs/generate"
 
 headers = {
